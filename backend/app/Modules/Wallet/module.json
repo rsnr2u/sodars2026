@@ -1,0 +1,13 @@
+{
+  "name": "Wallet",
+  "version": "1.0",
+  "enabled": true,
+  "providers": [
+    "App\\Modules\\Wallet\\Infrastructure\\Providers\\WalletServiceProvider"
+  ],
+  "routes": [
+    "App\\Modules\\Wallet\\Presentation\\Routes\\v1\\api.php"
+  ],
+  "dependencies": ["Branches", "Providers"],
+  "adr_references": ["ADR-014"]
+}

@@ -1,0 +1,26 @@
+{
+  "name": "Bookings",
+  "version": "1.0",
+  "enabled": true,
+  "providers": [
+    "App\\Modules\\Bookings\\Infrastructure\\Providers\\BookingServiceProvider"
+  ],
+  "routes": [
+    "App\\Modules\\Bookings\\Presentation\\Routes\\v1\\api.php"
+  ],
+  "events_published": [
+    "booking.created.v1",
+    "booking.status_changed.v1",
+    "booking.payment_recorded.v1",
+    "booking.payment_audited.v1"
+  ],
+  "events_consumed": [],
+  "permissions": [
+    "bookings.view",
+    "bookings.create",
+    "bookings.update",
+    "bookings.audit"
+  ],
+  "dependencies": ["Branches", "Inventory", "Campaigns"],
+  "adr_references": ["ADR-011", "ADR-012"]
+}

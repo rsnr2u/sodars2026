@@ -1,0 +1,16 @@
+{
+  "name": "Shared",
+  "version": "1.0",
+  "enabled": true,
+  "providers": [
+    "App\\Platform\\Shared\\Infrastructure\\Providers\\SharedServiceProvider"
+  ],
+  "routes": [
+    "App\\Platform\\Shared\\Presentation\\Routes\\api.php"
+  ],
+  "events_published": [],
+  "events_consumed": [],
+  "permissions": [],
+  "dependencies": [],
+  "adr_references": []
+}

@@ -1,0 +1,21 @@
+{
+  "name": "Settings",
+  "version": "1.0",
+  "enabled": true,
+  "providers": [
+    "App\\Platform\\Settings\\Infrastructure\\Providers\\SettingsServiceProvider"
+  ],
+  "routes": [
+    "App\\Platform\\Settings\\Presentation\\Routes\\api.php"
+  ],
+  "events_published": [
+    "App\\Core\\Events\\SettingsUpdated"
+  ],
+  "events_consumed": [],
+  "permissions": [
+    "settings.view",
+    "settings.update"
+  ],
+  "dependencies": [],
+  "adr_references": []
+}

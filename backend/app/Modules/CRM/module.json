@@ -1,0 +1,13 @@
+{
+  "name": "CRM",
+  "version": "1.0",
+  "enabled": true,
+  "providers": [
+    "App\\Modules\\CRM\\Infrastructure\\Providers\\CrmServiceProvider"
+  ],
+  "routes": [
+    "App\\Modules\\CRM\\Presentation\\Routes\\v1\\api.php"
+  ],
+  "dependencies": ["Branches", "Inventory", "Bookings"],
+  "adr_references": ["ADR-015"]
+}

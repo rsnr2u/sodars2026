@@ -1,0 +1,35 @@
+{
+  "name": "Finance",
+  "version": "1.0",
+  "enabled": true,
+  "providers": [
+    "App\\Modules\\Finance\\Infrastructure\\Providers\\FinanceServiceProvider"
+  ],
+  "routes": [
+    "App\\Modules\\Finance\\Presentation\\Routes\\v1\\api.php"
+  ],
+  "events_published": [
+    "invoice.created.v1",
+    "invoice.issued.v1",
+    "invoice.payment.recorded.v1",
+    "invoice.voided.v1",
+    "settlement.generated.v1",
+    "settlement.paid.v1",
+    "revenue.recognized.v1",
+    "credit.note.created.v1",
+    "debit.note.created.v1"
+  ],
+  "events_consumed": [
+    "booking.created.v1",
+    "booking.payment_recorded.v1",
+    "booking.payment_audited.v1"
+  ],
+  "permissions": [
+    "invoices.view",
+    "invoices.manage",
+    "settlements.view",
+    "settlements.manage"
+  ],
+  "dependencies": ["Branches", "Inventory", "Bookings"],
+  "adr_references": ["ADR-013"]
+}

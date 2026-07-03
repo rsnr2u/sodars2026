@@ -1,0 +1,22 @@
+{
+  "name": "Automation",
+  "version": "1.0",
+  "enabled": true,
+  "providers": [
+    "App\\Platform\\Automation\\Infrastructure\\Providers\\AutomationServiceProvider"
+  ],
+  "routes": [
+    "App\\Platform\\Automation\\Presentation\\Routes\\api.php"
+  ],
+  "events_published": [
+    "automation.executed.v1",
+    "automation.failed.v1"
+  ],
+  "events_consumed": [],
+  "permissions": [
+    "automation.view",
+    "automation.manage"
+  ],
+  "dependencies": [],
+  "adr_references": []
+}

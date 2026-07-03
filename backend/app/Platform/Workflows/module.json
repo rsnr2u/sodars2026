@@ -1,0 +1,26 @@
+{
+  "name": "Workflows",
+  "version": "1.0",
+  "enabled": true,
+  "providers": [
+    "App\\Platform\\Workflows\\Infrastructure\\Providers\\WorkflowServiceProvider"
+  ],
+  "routes": [
+    "App\\Platform\\Workflows\\Presentation\\Routes\\api.php"
+  ],
+  "events_published": [
+    "workflow.started.v1",
+    "workflow.task_assigned.v1",
+    "workflow.task_completed.v1",
+    "workflow.completed.v1",
+    "workflow.cancelled.v1"
+  ],
+  "events_consumed": [],
+  "permissions": [
+    "workflows.view",
+    "workflows.manage",
+    "workflows.action"
+  ],
+  "dependencies": [],
+  "adr_references": []
+}

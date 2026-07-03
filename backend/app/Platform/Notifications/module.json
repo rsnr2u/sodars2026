@@ -1,0 +1,19 @@
+{
+  "name": "Notifications",
+  "version": "1.0",
+  "enabled": true,
+  "providers": [
+    "App\\Platform\\Notifications\\Infrastructure\\Providers\\NotificationServiceProvider"
+  ],
+  "routes": [
+    "App\\Platform\\Notifications\\Presentation\\Routes\\api.php"
+  ],
+  "events_published": [],
+  "events_consumed": [],
+  "permissions": [
+    "notifications.view",
+    "notifications.manage"
+  ],
+  "dependencies": [],
+  "adr_references": []
+}

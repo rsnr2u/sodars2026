@@ -1,0 +1,20 @@
+{
+  "name": "DAM",
+  "version": "1.0",
+  "enabled": true,
+  "providers": [
+    "App\\Platform\\DAM\\Infrastructure\\Providers\\DamServiceProvider"
+  ],
+  "routes": [
+    "App\\Platform\\DAM\\Presentation\\Routes\\api.php"
+  ],
+  "events_published": [],
+  "events_consumed": [],
+  "permissions": [
+    "dam.upload",
+    "dam.view",
+    "dam.manage"
+  ],
+  "dependencies": [],
+  "adr_references": []
+}

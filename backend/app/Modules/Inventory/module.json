@@ -1,0 +1,38 @@
+{
+  "name": "Inventory",
+  "version": "1.0",
+  "enabled": true,
+  "providers": [
+    "App\\Modules\\Inventory\\Infrastructure\\Providers\\InventoryServiceProvider"
+  ],
+  "routes": [
+    "App\\Modules\\Inventory\\Presentation\\Routes\\v1\\api.php"
+  ],
+  "events_published": [
+    "inventory.created.v1",
+    "inventory.updated.v1",
+    "inventory.deleted.v1",
+    "inventory.approved.v1",
+    "inventory.suspended.v1",
+    "inventory.face.created.v1",
+    "inventory.face.updated.v1",
+    "inventory.pricing.created.v1",
+    "inventory.availability.changed.v1",
+    "inventory.media.uploaded.v1"
+  ],
+  "events_consumed": [],
+  "permissions": [
+    "inventories.view",
+    "inventories.create",
+    "inventories.update",
+    "inventories.delete",
+    "inventories.approve",
+    "inventories.manage_pricing",
+    "inventories.manage_availability",
+    "inventories.manage_documents",
+    "inventories.search",
+    "inventories.dashboard"
+  ],
+  "dependencies": ["Providers", "Branches"],
+  "adr_references": ["ADR-007", "ADR-008"]
+}

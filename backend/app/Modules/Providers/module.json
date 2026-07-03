@@ -1,0 +1,33 @@
+{
+  "name": "Providers",
+  "version": "1.0",
+  "enabled": true,
+  "providers": [
+    "App\\Modules\\Providers\\Infrastructure\\Providers\\ProviderServiceProvider"
+  ],
+  "routes": [
+    "App\\Modules\\Providers\\Presentation\\Routes\\v1\\api.php"
+  ],
+  "events_published": [
+    "provider.registered.v1",
+    "provider.verified.v1",
+    "provider.suspended.v1",
+    "provider.staff.assigned.v1",
+    "provider.document.uploaded.v1",
+    "provider.subscription.changed.v1",
+    "provider.bank.updated.v1"
+  ],
+  "events_consumed": [],
+  "permissions": [
+    "providers.view",
+    "providers.register",
+    "providers.update",
+    "providers.delete",
+    "providers.verify",
+    "providers.manage_staff",
+    "providers.manage_billing",
+    "providers.manage_settings"
+  ],
+  "dependencies": [],
+  "adr_references": ["ADR-001"]
+}

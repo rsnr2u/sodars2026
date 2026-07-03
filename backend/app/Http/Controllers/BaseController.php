@@ -1,0 +1,10 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers;
+
+abstract class BaseController extends Controller
+{
+    // Common base web controller functions.
+}

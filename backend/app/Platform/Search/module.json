@@ -1,0 +1,19 @@
+{
+  "name": "Search",
+  "version": "1.0",
+  "enabled": true,
+  "providers": [
+    "App\\Platform\\Search\\Infrastructure\\Providers\\SearchServiceProvider"
+  ],
+  "routes": [
+    "App\\Platform\\Search\\Presentation\\Routes\\api.php"
+  ],
+  "events_published": [],
+  "events_consumed": [],
+  "permissions": [
+    "search.view",
+    "search.manage"
+  ],
+  "dependencies": [],
+  "adr_references": []
+}

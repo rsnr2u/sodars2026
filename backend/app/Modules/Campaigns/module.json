@@ -1,0 +1,30 @@
+{
+  "name": "Campaigns",
+  "version": "1.0",
+  "enabled": true,
+  "providers": [
+    "App\\Modules\\Campaigns\\Infrastructure\\Providers\\CampaignServiceProvider"
+  ],
+  "routes": [
+    "App\\Modules\\Campaigns\\Presentation\\Routes\\v1\\api.php"
+  ],
+  "events_published": [
+    "campaign.created.v1",
+    "campaign.updated.v1",
+    "campaign.status_changed.v1",
+    "campaign.creative.uploaded.v1",
+    "campaign.creative.audited.v1",
+    "campaign.proof.uploaded.v1",
+    "campaign.proof.audited.v1"
+  ],
+  "events_consumed": [],
+  "permissions": [
+    "campaigns.view",
+    "campaigns.create",
+    "campaigns.update",
+    "campaigns.delete",
+    "campaigns.audit"
+  ],
+  "dependencies": ["Branches", "Inventory"],
+  "adr_references": ["ADR-009", "ADR-010"]
+}

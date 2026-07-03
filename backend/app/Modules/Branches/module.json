@@ -1,0 +1,30 @@
+{
+  "name": "Branches",
+  "version": "1.0",
+  "enabled": true,
+  "providers": [
+    "App\\Modules\\Branches\\Infrastructure\\Providers\\BranchServiceProvider"
+  ],
+  "routes": [
+    "App\\Modules\\Branches\\Presentation\\Routes\\v1\\api.php"
+  ],
+  "events_published": [
+    "branch.created.v1",
+    "branch.updated.v1",
+    "branch.status_changed.v1",
+    "branch.coverage_area.added.v1",
+    "branch.coverage_area.removed.v1"
+  ],
+  "events_consumed": [],
+  "permissions": [
+    "branches.view",
+    "branches.create",
+    "branches.update",
+    "branches.delete",
+    "branches.change_status",
+    "branches.manage_coverage",
+    "branches.manage_members"
+  ],
+  "dependencies": [],
+  "adr_references": ["ADR-001"]
+}

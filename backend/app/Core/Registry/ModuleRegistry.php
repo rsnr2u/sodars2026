@@ -30,6 +30,7 @@ class ModuleRegistry
         \App\Platform\Workflows\Module::class,
         \App\Platform\Automation\Module::class,
         \App\Platform\Search\Module::class,
+        \App\Platform\Reporting\Module::class,
     ];
 
     /**

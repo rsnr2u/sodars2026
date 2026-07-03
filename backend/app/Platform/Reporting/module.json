@@ -1,0 +1,15 @@
+{
+    "name": "Reporting",
+    "slug": "reporting",
+    "version": "1.0.0",
+    "description": "Cross-cutting Business Intelligence, Dashboard Widgets and Report Export platform context.",
+    "enabled": true,
+    "permissions": [
+        "reporting.view",
+        "reporting.manage"
+    ],
+    "order": 140,
+    "providers": [
+        "App\\Platform\\Reporting\\Infrastructure\\Providers\\ReportingServiceProvider"
+    ]
+}

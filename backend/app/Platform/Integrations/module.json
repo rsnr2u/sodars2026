@@ -1,0 +1,15 @@
+{
+    "name": "Integrations",
+    "slug": "integrations",
+    "version": "1.0.0",
+    "description": "Cross-cutting developer API keys, scope authentications, key rate limiters, and signed webhook delivery engine.",
+    "enabled": true,
+    "permissions": [
+        "integrations.view",
+        "integrations.manage"
+    ],
+    "order": 150,
+    "providers": [
+        "App\\Platform\\Integrations\\Infrastructure\\Providers\\IntegrationsServiceProvider"
+    ]
+}

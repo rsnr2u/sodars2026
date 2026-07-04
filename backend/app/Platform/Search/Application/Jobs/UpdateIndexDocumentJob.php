@@ -20,10 +20,10 @@ class UpdateIndexDocumentJob implements ShouldQueue
     use SerializesModels;
 
     public function __construct(
-        protected string $action, // 'index' or 'remove'
-        protected ?string $entityClass = null,
-        protected ?string $entityId = null,
-        protected ?string $indexName = null
+        public readonly string $action, // 'index' or 'remove'
+        public readonly ?string $entityClass = null,
+        public readonly ?string $entityId = null,
+        public readonly ?string $indexName = null
     ) {}
 
     public function handle(IndexingService $service): void

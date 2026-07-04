@@ -16,7 +16,8 @@ class CreateBookingData
         public readonly string $branchId,
         public readonly array $items,
         public readonly ?string $campaignId = null,
-        public readonly string $currency = 'INR'
+        public readonly string $currency = 'INR',
+        public readonly ?string $organizationId = null
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -38,7 +39,8 @@ class CreateBookingData
             branchId: $request->input('branch_id'),
             items: $itemsData,
             campaignId: $request->input('campaign_id'),
-            currency: $request->input('currency', 'INR')
+            currency: $request->input('currency', 'INR'),
+            organizationId: $request->input('organization_id')
         );
     }
 }

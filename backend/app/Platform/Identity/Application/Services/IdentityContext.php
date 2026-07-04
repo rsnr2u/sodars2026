@@ -31,8 +31,17 @@ class IdentityContext
             $user = Auth::user();
             $this->user = $user;
             $this->userId = (string) $user->id;
-            $this->branchId = $user->branch_id;
             $this->organizationId = $user->organization_id;
+
+            // Resolve branch_id from branch_users if not a direct column on users
+            try {
+                $this->branchId = \Illuminate\Support\Facades\DB::table('branch_users')
+                    ->where('user_id', $this->userId)
+                    ->where('is_active', true)
+                    ->value('branch_id');
+            } catch (\Throwable $e) {
+                $this->branchId = null;
+            }
 
             if (!$this->organizationId) {
                 $membership = OrganizationMember::where('user_id', $this->userId)

@@ -79,6 +79,7 @@ class BookingLifecycleService
         $eventData = [
             'booking_id' => $booking->id,
             'booking_code' => $booking->booking_code,
+            'organization_id' => $booking->organization_id,
             'from_status' => $fromStatus,
             'to_status' => $targetStatus,
             'comment' => $comment,

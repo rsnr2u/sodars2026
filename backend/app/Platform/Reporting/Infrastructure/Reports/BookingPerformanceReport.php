@@ -7,7 +7,7 @@ namespace App\Platform\Reporting\Infrastructure\Reports;
 use App\Platform\Reporting\Domain\Contracts\Report;
 use App\Platform\Reporting\Domain\Contracts\Exportable;
 use App\Platform\Reporting\Domain\ValueObjects\ReportParameters;
-use Illuminate\Support\Facades\DB;
+use App\Modules\Bookings\Domain\Entities\Booking;
 
 class BookingPerformanceReport implements Report, Exportable
 {
@@ -27,9 +27,9 @@ class BookingPerformanceReport implements Report, Exportable
     {
         $status = $parameters->getString('status');
 
-        $query = DB::table('bookings');
+        $query = Booking::query();
         if (!empty($status)) {
-            $query->where('status', $status);
+            $query->where('status', strtolower($status));
         }
 
         $bookings = $query->select(
@@ -43,7 +43,7 @@ class BookingPerformanceReport implements Report, Exportable
         $totalCount = $bookings->count();
         $totalRevenueCents = $bookings->sum('grand_total_cents');
 
-        $records = $bookings->map(fn($item) => (array) $item)->toArray();
+        $records = $bookings->map(fn($item) => $item->toArray())->toArray();
 
         return [
             'summary' => [

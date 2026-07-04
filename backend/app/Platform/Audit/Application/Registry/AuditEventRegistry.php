@@ -36,6 +36,9 @@ class AuditEventRegistry
         'report.generated' => EventCategory::Reporting,
         'report.exported' => EventCategory::Reporting,
 
+        // Business events
+        'booking.*' => EventCategory::Business,
+
         // General fallback
         'model.created' => EventCategory::DataChange,
         'model.updated' => EventCategory::DataChange,

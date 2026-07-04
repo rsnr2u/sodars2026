@@ -25,6 +25,7 @@ class PublishEvents
         $eventData = [
             'booking_id' => $booking->id,
             'booking_code' => $booking->booking_code,
+            'organization_id' => $booking->organization_id,
             'customer_id' => $booking->customer_id,
             'branch_id' => $booking->branch_id,
             'start_date' => $booking->start_date->toDateString(),

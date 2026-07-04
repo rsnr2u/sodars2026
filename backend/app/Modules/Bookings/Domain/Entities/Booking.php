@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Bookings\Domain\Entities;
 
-use App\Core\Models\BaseModel;
+use App\Core\Models\BaseBusinessModel;
 use App\Models\User;
 use App\Modules\Branches\Domain\Entities\Branch;
 use App\Modules\Bookings\Domain\Enums\BookingStatus;
@@ -13,12 +13,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use App\Platform\Search\Domain\Contracts\Searchable;
 
-class Booking extends BaseModel implements Searchable
+class Booking extends BaseBusinessModel implements Searchable
 {
     protected $table = 'bookings';
 
     protected $fillable = [
         'booking_code',
+        'organization_id',
         'customer_id',
         'branch_id',
         'start_date',

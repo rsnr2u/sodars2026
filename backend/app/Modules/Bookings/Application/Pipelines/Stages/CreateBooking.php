@@ -41,6 +41,7 @@ class CreateBooking
         $booking = Booking::create([
             'id' => (string) Str::uuid(),
             'booking_code' => $code,
+            'organization_id' => $dto->organizationId,
             'customer_id' => $dto->customerId,
             'branch_id' => $dto->branchId,
             'start_date' => $minDate,

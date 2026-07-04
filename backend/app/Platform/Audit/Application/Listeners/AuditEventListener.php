@@ -11,6 +11,8 @@ use App\Platform\Identity\Domain\Events\UserLoggedOut;
 use App\Platform\Workflows\Domain\Events\WorkflowStarted;
 use App\Platform\Workflows\Domain\Events\WorkflowCompleted;
 use App\Platform\Workflows\Domain\Events\WorkflowCancelled;
+use App\Modules\Bookings\Domain\Events\BookingCreated;
+use App\Modules\Bookings\Domain\Events\BookingStatusChanged;
 use Illuminate\Contracts\Events\Dispatcher;
 
 class AuditEventListener
@@ -69,11 +71,49 @@ class AuditEventListener
         $this->logger->log($envelope);
     }
 
+    public function onBookingCreated(BookingCreated $event): void
+    {
+        $data = $event->data;
+        $orgId = $data['organization_id'] ?? null;
+        $bookingCode = $data['booking_code'] ?? 'ID: ' . $event->aggregateId;
+
+        $envelope = AuditEnvelope::make('booking.created', "Booking {$bookingCode} created")
+            ->actor($event->userId, null)
+            ->organization($orgId)
+            ->metadata($data);
+
+        $this->logger->log($envelope);
+    }
+
+    public function onBookingStatusChanged(BookingStatusChanged $event): void
+    {
+        $data = $event->data;
+        $orgId = $data['organization_id'] ?? null;
+        $toStatus = $data['to_status'] ?? 'unknown';
+        $fromStatus = $data['from_status'] ?? 'unknown';
+        $bookingCode = $data['booking_code'] ?? 'ID: ' . $event->aggregateId;
+
+        $eventType = "booking.{$toStatus}";
+        $description = "Booking {$bookingCode} transitioned from {$fromStatus} to {$toStatus}";
+        if (!empty($data['comment'])) {
+            $description .= " (Comment: {$data['comment']})";
+        }
+
+        $envelope = AuditEnvelope::make($eventType, $description)
+            ->actor($event->userId, null)
+            ->organization($orgId)
+            ->metadata($data);
+
+        $this->logger->log($envelope);
+    }
+
     public function subscribe(Dispatcher $events): array
     {
         $subs = [
             UserLoggedIn::class => 'onUserLogin',
             UserLoggedOut::class => 'onUserLogout',
+            BookingCreated::class => 'onBookingCreated',
+            BookingStatusChanged::class => 'onBookingStatusChanged',
         ];
 
         // Register workflow events if classes exist

@@ -9,6 +9,7 @@ use App\Platform\Reporting\Infrastructure\Drivers\CsvExportDriver;
 use App\Platform\Reporting\Infrastructure\Reports\TrialBalanceReport;
 use App\Platform\Reporting\Infrastructure\Reports\InventoryOccupancyReport;
 use App\Platform\Reporting\Infrastructure\Reports\BookingPerformanceReport;
+use App\Platform\Reporting\Infrastructure\Reports\LeadSourceReport;
 use App\Platform\Reporting\Infrastructure\Providers\ValueCardProvider;
 use App\Platform\Reporting\Infrastructure\Providers\ChartProvider;
 use Illuminate\Support\ServiceProvider;
@@ -25,6 +26,7 @@ class ReportingServiceProvider extends ServiceProvider
             $registry->registerReport(TrialBalanceReport::class);
             $registry->registerReport(InventoryOccupancyReport::class);
             $registry->registerReport(BookingPerformanceReport::class);
+            $registry->registerReport(LeadSourceReport::class);
 
             // Register Export Drivers
             $registry->registerExportDriver(CsvExportDriver::class);

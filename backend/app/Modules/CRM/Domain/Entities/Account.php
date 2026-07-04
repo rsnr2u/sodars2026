@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace App\Modules\CRM\Domain\Entities;
 
-use App\Core\Models\BaseModel;
+use App\Core\Models\BaseBusinessModel;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Account extends BaseModel
+class Account extends BaseBusinessModel
 {
     protected $table = 'crm_accounts';
 
     protected $fillable = [
+        'organization_id',
         'name',
         'industry',
         'website',

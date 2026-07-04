@@ -4,18 +4,20 @@ declare(strict_types=1);
 
 namespace App\Modules\CRM\Domain\Entities;
 
-use App\Core\Models\BaseModel;
+use App\Core\Models\BaseBusinessModel;
 use App\Modules\CRM\Domain\Enums\QuotationStatus;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use App\Platform\Search\Domain\Contracts\Searchable;
 
-class Quotation extends BaseModel
+class Quotation extends BaseBusinessModel implements Searchable
 {
     protected $table = 'crm_quotations';
 
     protected $fillable = [
+        'organization_id',
         'opportunity_id',
         'account_id',
         'quotation_number',
@@ -52,5 +54,36 @@ class Quotation extends BaseModel
     public function activities(): MorphMany
     {
         return $this->morphMany(CrmActivity::class, 'activityable');
+    }
+
+    public function toSearchDocument(): array
+    {
+        return [
+            'id' => $this->id,
+            'quotation_number' => $this->quotation_number,
+            'status' => $this->status instanceof \BackedEnum ? $this->status->value : (string) $this->status,
+            'opportunity_id' => $this->opportunity_id,
+            'account_id' => $this->account_id,
+            'organization_id' => $this->organization_id,
+            'created_at' => $this->created_at?->toIso8601String(),
+        ];
+    }
+
+    public static function getSearchIndexName(): string
+    {
+        return 'crm_quotations';
+    }
+
+    public static function getSearchFieldMappings(): array
+    {
+        return [
+            'quotation_number' => 'text',
+            'status' => 'keyword',
+        ];
+    }
+
+    public static function getSearchFacetFields(): array
+    {
+        return ['status'];
     }
 }

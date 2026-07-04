@@ -14,6 +14,13 @@ class WebhookEventRegistry
     public const INVENTORY_DELETED = 'inventory.deleted';
     public const INVENTORY_STATUS_CHANGED = 'inventory.status_changed';
 
+    public const CRM_LEAD_CREATED = 'crm.lead.created';
+    public const CRM_LEAD_STATUS_CHANGED = 'crm.lead.status_changed';
+    public const CRM_OPPORTUNITY_CREATED = 'crm.opportunity.created';
+    public const CRM_OPPORTUNITY_STAGE_CHANGED = 'crm.opportunity.stage_changed';
+    public const CRM_QUOTATION_CREATED = 'crm.quotation.created';
+    public const CRM_QUOTATION_STATUS_CHANGED = 'crm.quotation.status_changed';
+
     /**
      * Get all supported webhook events.
      *
@@ -29,6 +36,12 @@ class WebhookEventRegistry
             self::INVENTORY_UPDATED,
             self::INVENTORY_DELETED,
             self::INVENTORY_STATUS_CHANGED,
+            self::CRM_LEAD_CREATED,
+            self::CRM_LEAD_STATUS_CHANGED,
+            self::CRM_OPPORTUNITY_CREATED,
+            self::CRM_OPPORTUNITY_STAGE_CHANGED,
+            self::CRM_QUOTATION_CREATED,
+            self::CRM_QUOTATION_STATUS_CHANGED,
         ];
     }
 

@@ -34,6 +34,9 @@ class SearchIndexListener
                 \App\Modules\Bookings\Domain\Entities\Booking::class => 'bookings',
                 \App\Modules\Inventory\Domain\Entities\Inventory::class => 'inventories',
                 \App\Modules\Finance\Domain\Entities\Invoice::class => 'invoices',
+                \App\Modules\CRM\Domain\Entities\Lead::class => 'crm_leads',
+                \App\Modules\CRM\Domain\Entities\Opportunity::class => 'crm_opportunities',
+                \App\Modules\CRM\Domain\Entities\Quotation::class => 'crm_quotations',
             ];
             $indexName = $fallbacks[$entityClass] ?? null;
         }
@@ -70,6 +73,13 @@ class SearchIndexListener
             \App\Modules\Inventory\Domain\Events\InventoryApproved::class,
             \App\Modules\Inventory\Domain\Events\InventorySuspended::class,
             \App\Modules\Inventory\Domain\Events\InventoryStatusChanged::class,
+            // CRM
+            \App\Modules\CRM\Domain\Events\LeadCreated::class,
+            \App\Modules\CRM\Domain\Events\LeadStatusChanged::class,
+            \App\Modules\CRM\Domain\Events\OpportunityCreated::class,
+            \App\Modules\CRM\Domain\Events\OpportunityStageChanged::class,
+            \App\Modules\CRM\Domain\Events\QuotationCreated::class,
+            \App\Modules\CRM\Domain\Events\QuotationStatusChanged::class,
         ];
 
         foreach ($observedEvents as $eventClass) {

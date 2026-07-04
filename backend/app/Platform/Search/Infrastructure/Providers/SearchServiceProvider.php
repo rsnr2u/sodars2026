@@ -60,6 +60,9 @@ class SearchServiceProvider extends ServiceProvider
         $this->registerSearchIndex('inventories', \App\Modules\Inventory\Domain\Entities\Inventory::class);
         $this->registerSearchIndex('bookings', \App\Modules\Bookings\Domain\Entities\Booking::class);
         $this->registerSearchIndex('invoices', \App\Modules\Finance\Domain\Entities\Invoice::class);
+        $this->registerSearchIndex('crm_leads', \App\Modules\CRM\Domain\Entities\Lead::class);
+        $this->registerSearchIndex('crm_opportunities', \App\Modules\CRM\Domain\Entities\Opportunity::class);
+        $this->registerSearchIndex('crm_quotations', \App\Modules\CRM\Domain\Entities\Quotation::class);
     }
 
     protected function registerSearchIndex(string $name, string $entityClass): void

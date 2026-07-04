@@ -15,6 +15,12 @@ use App\Modules\Bookings\Domain\Events\BookingCreated;
 use App\Modules\Bookings\Domain\Events\BookingStatusChanged;
 use App\Modules\Inventory\Domain\Events\InventoryCreated;
 use App\Modules\Inventory\Domain\Events\InventoryStatusChanged;
+use App\Modules\CRM\Domain\Events\LeadCreated;
+use App\Modules\CRM\Domain\Events\LeadStatusChanged;
+use App\Modules\CRM\Domain\Events\OpportunityCreated;
+use App\Modules\CRM\Domain\Events\OpportunityStageChanged;
+use App\Modules\CRM\Domain\Events\QuotationCreated;
+use App\Modules\CRM\Domain\Events\QuotationStatusChanged;
 use Illuminate\Contracts\Events\Dispatcher;
 
 class AuditEventListener
@@ -145,6 +151,96 @@ class AuditEventListener
         $this->logger->log($envelope);
     }
 
+    public function onLeadCreated(LeadCreated $event): void
+    {
+        $data = $event->data;
+        $orgId = $event->organizationId;
+        $title = $data['title'] ?? 'Lead';
+
+        $envelope = AuditEnvelope::make('crm.lead.created', "Lead '{$title}' created")
+            ->actor($event->actorId, null)
+            ->organization($orgId)
+            ->metadata($data);
+
+        $this->logger->log($envelope);
+    }
+
+    public function onLeadStatusChanged(LeadStatusChanged $event): void
+    {
+        $data = $event->data;
+        $orgId = $event->organizationId;
+        $from = $data['from_status'] ?? 'unknown';
+        $to = $data['to_status'] ?? 'unknown';
+        $title = $data['title'] ?? 'Lead';
+
+        $envelope = AuditEnvelope::make('crm.lead.status_changed', "Lead '{$title}' changed status from {$from} to {$to}")
+            ->actor($event->actorId, null)
+            ->organization($orgId)
+            ->metadata($data);
+
+        $this->logger->log($envelope);
+    }
+
+    public function onOpportunityCreated(OpportunityCreated $event): void
+    {
+        $data = $event->data;
+        $orgId = $event->organizationId;
+        $title = $data['title'] ?? 'Opportunity';
+
+        $envelope = AuditEnvelope::make('crm.opportunity.created', "Opportunity '{$title}' created")
+            ->actor($event->actorId, null)
+            ->organization($orgId)
+            ->metadata($data);
+
+        $this->logger->log($envelope);
+    }
+
+    public function onOpportunityStageChanged(OpportunityStageChanged $event): void
+    {
+        $data = $event->data;
+        $orgId = $event->organizationId;
+        $from = $data['from_pipeline_stage_id'] ?? 'unknown';
+        $to = $data['to_pipeline_stage_id'] ?? 'unknown';
+        $title = $data['title'] ?? 'Opportunity';
+
+        $envelope = AuditEnvelope::make('crm.opportunity.stage_changed', "Opportunity '{$title}' stage updated from {$from} to {$to}")
+            ->actor($event->actorId, null)
+            ->organization($orgId)
+            ->metadata($data);
+
+        $this->logger->log($envelope);
+    }
+
+    public function onQuotationCreated(QuotationCreated $event): void
+    {
+        $data = $event->data;
+        $orgId = $event->organizationId;
+        $num = $data['quotation_number'] ?? 'unknown';
+
+        $envelope = AuditEnvelope::make('crm.quotation.created', "Quotation {$num} created")
+            ->actor($event->actorId, null)
+            ->organization($orgId)
+            ->metadata($data);
+
+        $this->logger->log($envelope);
+    }
+
+    public function onQuotationStatusChanged(QuotationStatusChanged $event): void
+    {
+        $data = $event->data;
+        $orgId = $event->organizationId;
+        $from = $data['from_status'] ?? 'unknown';
+        $to = $data['to_status'] ?? 'unknown';
+        $num = $data['quotation_number'] ?? 'unknown';
+
+        $envelope = AuditEnvelope::make('crm.quotation.status_changed', "Quotation {$num} status changed from {$from} to {$to}")
+            ->actor($event->actorId, null)
+            ->organization($orgId)
+            ->metadata($data);
+
+        $this->logger->log($envelope);
+    }
+
     public function subscribe(Dispatcher $events): array
     {
         $subs = [
@@ -154,6 +250,12 @@ class AuditEventListener
             BookingStatusChanged::class => 'onBookingStatusChanged',
             InventoryCreated::class => 'onInventoryCreated',
             InventoryStatusChanged::class => 'onInventoryStatusChanged',
+            LeadCreated::class => 'onLeadCreated',
+            LeadStatusChanged::class => 'onLeadStatusChanged',
+            OpportunityCreated::class => 'onOpportunityCreated',
+            OpportunityStageChanged::class => 'onOpportunityStageChanged',
+            QuotationCreated::class => 'onQuotationCreated',
+            QuotationStatusChanged::class => 'onQuotationStatusChanged',
         ];
 
         // Register workflow events if classes exist

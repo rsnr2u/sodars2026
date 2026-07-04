@@ -4,17 +4,19 @@ declare(strict_types=1);
 
 namespace App\Modules\CRM\Domain\Entities;
 
-use App\Core\Models\BaseModel;
+use App\Core\Models\BaseBusinessModel;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use App\Platform\Search\Domain\Contracts\Searchable;
 
-class Opportunity extends BaseModel
+class Opportunity extends BaseBusinessModel implements Searchable
 {
     protected $table = 'crm_opportunities';
 
     protected $fillable = [
+        'organization_id',
         'account_id',
         'contact_id',
         'title',
@@ -34,13 +36,10 @@ class Opportunity extends BaseModel
         'close_date' => 'date',
     ];
 
-    protected static function boot()
+    protected function beforeSave(): void
     {
-        parent::boot();
-
-        static::saving(function (Opportunity $model) {
-            $model->expected_value_cents = (int) round(($model->estimated_value_cents * $model->probability) / 100);
-        });
+        parent::beforeSave();
+        $this->expected_value_cents = (int) round(($this->estimated_value_cents * $this->probability) / 100);
     }
 
     public function account(): BelongsTo
@@ -81,5 +80,37 @@ class Opportunity extends BaseModel
     public function activities(): MorphMany
     {
         return $this->morphMany(CrmActivity::class, 'activityable');
+    }
+
+    public function toSearchDocument(): array
+    {
+        return [
+            'id' => $this->id,
+            'title' => $this->title,
+            'estimated_value_cents' => $this->estimated_value_cents,
+            'probability' => $this->probability,
+            'expected_value_cents' => $this->expected_value_cents,
+            'pipeline_stage_id' => $this->pipeline_stage_id,
+            'organization_id' => $this->organization_id,
+            'created_at' => $this->created_at?->toIso8601String(),
+        ];
+    }
+
+    public static function getSearchIndexName(): string
+    {
+        return 'crm_opportunities';
+    }
+
+    public static function getSearchFieldMappings(): array
+    {
+        return [
+            'title' => 'text',
+            'pipeline_stage_id' => 'keyword',
+        ];
+    }
+
+    public static function getSearchFacetFields(): array
+    {
+        return ['pipeline_stage_id'];
     }
 }

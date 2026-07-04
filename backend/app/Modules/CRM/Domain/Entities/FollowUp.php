@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 namespace App\Modules\CRM\Domain\Entities;
 
-use App\Core\Models\BaseModel;
+use App\Core\Models\BaseBusinessModel;
 use App\Models\User;
 use App\Modules\CRM\Domain\Enums\FollowUpStatus;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class FollowUp extends BaseModel
+class FollowUp extends BaseBusinessModel
 {
     protected $table = 'crm_followups';
 
     protected $fillable = [
+        'organization_id',
         'lead_id',
         'opportunity_id',
         'assigned_to',

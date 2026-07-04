@@ -27,6 +27,7 @@ class PublishEventsStage
         $eventData = [
             'inventory_id' => $inventory->id,
             'inventory_code' => $inventory->inventory_code,
+            'organization_id' => $inventory->organization_id,
             'provider_id' => $inventory->provider_id,
             'branch_id' => $inventory->branch_id,
             'status' => $inventory->status->value,

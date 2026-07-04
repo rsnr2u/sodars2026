@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Domain\Entities;
 
-use App\Core\Models\BaseModel;
+use App\Core\Models\BaseBusinessModel;
 use App\Modules\Inventory\Domain\Enums\InventoryStatus;
 use App\Modules\Inventory\Domain\Enums\OwnershipType;
 use App\Modules\Inventory\Domain\ValueObjects\InventoryCapabilities;
@@ -21,12 +21,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use App\Platform\Search\Domain\Contracts\Searchable;
 
-class Inventory extends BaseModel implements Searchable
+class Inventory extends BaseBusinessModel implements Searchable
 {
     protected $table = 'inventories';
 
     protected $fillable = [
         'inventory_code',
+        'organization_id',
         'display_name',
         'provider_id',
         'branch_id',

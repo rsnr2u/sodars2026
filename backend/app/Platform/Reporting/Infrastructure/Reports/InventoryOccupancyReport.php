@@ -7,7 +7,7 @@ namespace App\Platform\Reporting\Infrastructure\Reports;
 use App\Platform\Reporting\Domain\Contracts\Report;
 use App\Platform\Reporting\Domain\Contracts\Exportable;
 use App\Platform\Reporting\Domain\ValueObjects\ReportParameters;
-use Illuminate\Support\Facades\DB;
+use App\Modules\Inventory\Domain\Entities\Inventory;
 
 class InventoryOccupancyReport implements Report, Exportable
 {
@@ -27,33 +27,36 @@ class InventoryOccupancyReport implements Report, Exportable
     {
         $status = $parameters->getString('status');
 
-        $totalQuery = DB::table('inventory_availability');
+        // Base query building on scoped Inventory model
+        $baseQuery = Inventory::query()
+            ->join('inventory_faces', 'inventories.id', '=', 'inventory_faces.inventory_id')
+            ->join('inventory_availability', 'inventory_faces.id', '=', 'inventory_availability.inventory_face_id');
+
+        $totalQuery = (clone $baseQuery);
         if (!empty($status)) {
-            $totalQuery->where('availability_status', $status);
+            $totalQuery->where('inventory_availability.availability_status', strtolower($status));
         }
 
         $totalSlots = $totalQuery->count();
 
-        $occupiedSlots = DB::table('inventory_availability')
-            ->whereIn('availability_status', ['blocked', 'booked'])
+        $occupiedSlots = (clone $baseQuery)
+            ->whereIn('inventory_availability.availability_status', ['blocked', 'booked'])
             ->count();
 
         $occupancyRate = $totalSlots > 0 ? round(($occupiedSlots / $totalSlots) * 100, 2) : 0.0;
 
-        $records = DB::table('inventory_availability')
-            ->join('inventory_faces', 'inventory_availability.inventory_face_id', '=', 'inventory_faces.id')
-            ->join('inventories', 'inventory_faces.inventory_id', '=', 'inventories.id')
-            ->select(
+        $records = (clone $baseQuery)
+            ->select([
                 'inventories.display_name as inventory_name',
                 'inventories.inventory_code',
-                'inventory_faces.face_name',
+                'inventory_faces.display_name as face_name',
                 'inventory_availability.availability_status',
-                'inventory_availability.start_date',
-                'inventory_availability.end_date'
-            )
+                'inventory_availability.start_at as start_date',
+                'inventory_availability.end_at as end_date'
+            ])
             ->take(100)
             ->get()
-            ->map(fn($item) => (array) $item)
+            ->map(fn($item) => $item->toArray())
             ->toArray();
 
         return [

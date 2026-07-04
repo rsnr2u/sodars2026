@@ -10,35 +10,39 @@ use Illuminate\Contracts\Events\Dispatcher;
 class SearchIndexListener
 {
     /**
-     * Handle incoming domain event.
+     * Handle incoming domain event generically.
      */
     public function handle(object $event): void
     {
+        if (!$event instanceof \App\Core\Events\BusinessEvent) {
+            return;
+        }
+
+        $entityId = $event->aggregateId;
+        $entityClass = $event->getEntityClass();
+
+        // Dynamically resolve index name from the database search_indexes table
+        try {
+            $indexName = \App\Platform\Search\Domain\Entities\SearchIndex::where('entity_type', $entityClass)->value('name');
+        } catch (\Throwable $e) {
+            $indexName = null;
+        }
+
+        // Fallback to static mappings if database is not populated yet (e.g. in test setup)
+        if (!$indexName) {
+            $fallbacks = [
+                \App\Modules\Bookings\Domain\Entities\Booking::class => 'bookings',
+                \App\Modules\Inventory\Domain\Entities\Inventory::class => 'inventories',
+                \App\Modules\Finance\Domain\Entities\Invoice::class => 'invoices',
+            ];
+            $indexName = $fallbacks[$entityClass] ?? null;
+        }
+
+        if (!$indexName) {
+            return;
+        }
+
         $eventClass = get_class($event);
-        $entityId = $event->aggregateId ?? null;
-
-        if (!$entityId) {
-            return;
-        }
-
-        $entityClass = null;
-        $indexName = null;
-
-        if (str_contains($eventClass, 'Booking')) {
-            $entityClass = \App\Modules\Bookings\Domain\Entities\Booking::class;
-            $indexName = 'bookings';
-        } elseif (str_contains($eventClass, 'Invoice')) {
-            $entityClass = \App\Modules\Finance\Domain\Entities\Invoice::class;
-            $indexName = 'invoices';
-        } elseif (str_contains($eventClass, 'Inventory')) {
-            $entityClass = \App\Modules\Inventory\Domain\Entities\Inventory::class;
-            $indexName = 'inventories';
-        }
-
-        if (!$entityClass || !$indexName) {
-            return;
-        }
-
         if (str_contains($eventClass, 'Deleted')) {
             UpdateIndexDocumentJob::dispatch('remove', null, $entityId, $indexName);
         } else {
@@ -65,6 +69,7 @@ class SearchIndexListener
             \App\Modules\Inventory\Domain\Events\InventoryDeleted::class,
             \App\Modules\Inventory\Domain\Events\InventoryApproved::class,
             \App\Modules\Inventory\Domain\Events\InventorySuspended::class,
+            \App\Modules\Inventory\Domain\Events\InventoryStatusChanged::class,
         ];
 
         foreach ($observedEvents as $eventClass) {

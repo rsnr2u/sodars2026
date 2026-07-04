@@ -13,6 +13,8 @@ use App\Platform\Workflows\Domain\Events\WorkflowCompleted;
 use App\Platform\Workflows\Domain\Events\WorkflowCancelled;
 use App\Modules\Bookings\Domain\Events\BookingCreated;
 use App\Modules\Bookings\Domain\Events\BookingStatusChanged;
+use App\Modules\Inventory\Domain\Events\InventoryCreated;
+use App\Modules\Inventory\Domain\Events\InventoryStatusChanged;
 use Illuminate\Contracts\Events\Dispatcher;
 
 class AuditEventListener
@@ -78,7 +80,7 @@ class AuditEventListener
         $bookingCode = $data['booking_code'] ?? 'ID: ' . $event->aggregateId;
 
         $envelope = AuditEnvelope::make('booking.created', "Booking {$bookingCode} created")
-            ->actor($event->userId, null)
+            ->actor($event->actorId ?? $event->userId ?? null, null)
             ->organization($orgId)
             ->metadata($data);
 
@@ -100,7 +102,43 @@ class AuditEventListener
         }
 
         $envelope = AuditEnvelope::make($eventType, $description)
-            ->actor($event->userId, null)
+            ->actor($event->actorId ?? $event->userId ?? null, null)
+            ->organization($orgId)
+            ->metadata($data);
+
+        $this->logger->log($envelope);
+    }
+
+    public function onInventoryCreated(InventoryCreated $event): void
+    {
+        $data = $event->data;
+        $orgId = $data['organization_id'] ?? null;
+        $code = $data['inventory_code'] ?? 'ID: ' . $event->aggregateId;
+
+        $envelope = AuditEnvelope::make('inventory.created', "Inventory {$code} created")
+            ->actor($event->actorId ?? $event->userId ?? null, null)
+            ->organization($orgId)
+            ->metadata($data);
+
+        $this->logger->log($envelope);
+    }
+
+    public function onInventoryStatusChanged(InventoryStatusChanged $event): void
+    {
+        $data = $event->data;
+        $orgId = $data['organization_id'] ?? null;
+        $toStatus = $data['to_status'] ?? 'unknown';
+        $fromStatus = $data['from_status'] ?? 'unknown';
+        $code = $data['inventory_code'] ?? 'ID: ' . $event->aggregateId;
+
+        $eventType = "inventory.{$toStatus}";
+        $description = "Inventory {$code} transitioned from {$fromStatus} to {$toStatus}";
+        if (!empty($data['comment'])) {
+            $description .= " (Comment: {$data['comment']})";
+        }
+
+        $envelope = AuditEnvelope::make($eventType, $description)
+            ->actor($event->actorId ?? $event->userId ?? null, null)
             ->organization($orgId)
             ->metadata($data);
 
@@ -114,6 +152,8 @@ class AuditEventListener
             UserLoggedOut::class => 'onUserLogout',
             BookingCreated::class => 'onBookingCreated',
             BookingStatusChanged::class => 'onBookingStatusChanged',
+            InventoryCreated::class => 'onInventoryCreated',
+            InventoryStatusChanged::class => 'onInventoryStatusChanged',
         ];
 
         // Register workflow events if classes exist

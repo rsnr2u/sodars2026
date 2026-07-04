@@ -38,6 +38,13 @@ class AuditEventRegistry
 
         // Business events
         'booking.*' => EventCategory::Business,
+        'inventory.*' => EventCategory::Business,
+        'crm.*' => EventCategory::Business,
+        'finance.*' => EventCategory::Business,
+        'provider.*' => EventCategory::Business,
+        'campaign.*' => EventCategory::Business,
+        'wallet.*' => EventCategory::Business,
+        'payment.*' => EventCategory::Business,
 
         // General fallback
         'model.created' => EventCategory::DataChange,

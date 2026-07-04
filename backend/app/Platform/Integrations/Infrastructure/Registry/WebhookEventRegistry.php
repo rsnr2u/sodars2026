@@ -10,6 +10,9 @@ class WebhookEventRegistry
     public const BOOKING_STATUS_CHANGED = 'booking.status_changed';
     public const INVOICE_CREATED = 'invoice.created';
     public const INVENTORY_CREATED = 'inventory.created';
+    public const INVENTORY_UPDATED = 'inventory.updated';
+    public const INVENTORY_DELETED = 'inventory.deleted';
+    public const INVENTORY_STATUS_CHANGED = 'inventory.status_changed';
 
     /**
      * Get all supported webhook events.
@@ -23,6 +26,9 @@ class WebhookEventRegistry
             self::BOOKING_STATUS_CHANGED,
             self::INVOICE_CREATED,
             self::INVENTORY_CREATED,
+            self::INVENTORY_UPDATED,
+            self::INVENTORY_DELETED,
+            self::INVENTORY_STATUS_CHANGED,
         ];
     }
 

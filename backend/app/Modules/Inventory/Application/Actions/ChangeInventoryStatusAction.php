@@ -12,6 +12,7 @@ use App\Modules\Inventory\Domain\Entities\InventoryActivity;
 use App\Modules\Inventory\Domain\Enums\InventoryStatus;
 use App\Modules\Inventory\Domain\Events\InventoryApproved;
 use App\Modules\Inventory\Domain\Events\InventorySuspended;
+use App\Modules\Inventory\Domain\Events\InventoryStatusChanged;
 use App\Modules\Inventory\Domain\Repositories\InventoryReadRepositoryInterface;
 use App\Modules\Inventory\Domain\Repositories\InventoryWriteRepositoryInterface;
 use Illuminate\Support\Facades\DB;
@@ -48,6 +49,9 @@ class ChangeInventoryStatusAction
             $eventData = [
                 'inventory_id' => $id,
                 'inventory_code' => $updated->inventory_code,
+                'organization_id' => $updated->organization_id,
+                'from_status' => $currentStatus,
+                'to_status' => $newStatus,
                 'status' => $newStatus,
             ];
 
@@ -66,6 +70,15 @@ class ChangeInventoryStatusAction
             );
 
             // 2. Dispatch domain events
+            Event::dispatch(new InventoryStatusChanged(
+                aggregateId: $id,
+                aggregateVersion: 1,
+                data: $eventData,
+                occurredAt: now()->toIso8601String(),
+                correlationId: TraceContext::correlationId() ?? (string) \Illuminate\Support\Str::uuid(),
+                traceId: TraceContext::traceId() ?? (string) \Illuminate\Support\Str::uuid()
+            ));
+
             if ($newStatus === 'approved') {
                 Event::dispatch(new InventoryApproved(
                     aggregateId: $id,

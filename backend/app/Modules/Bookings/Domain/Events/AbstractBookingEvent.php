@@ -7,21 +7,37 @@ namespace App\Modules\Bookings\Domain\Events;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-abstract class AbstractBookingEvent
-{
-    use Dispatchable;
-    use SerializesModels;
+use App\Core\Events\BusinessEvent;
 
+abstract class AbstractBookingEvent extends BusinessEvent
+{
     /**
-     * @param array<string, mixed> $data
+     * Map old properties to standard BusinessEvent constructor.
      */
     public function __construct(
-        public readonly string $aggregateId,
-        public readonly int $aggregateVersion,
-        public readonly array $data,
-        public readonly string $occurredAt,
-        public readonly string $correlationId,
-        public readonly string $traceId,
-        public readonly ?string $userId = null
-    ) {}
+        string $aggregateId,
+        int $aggregateVersion,
+        array $data,
+        ?string $occurredAt = null,
+        ?string $correlationId = null,
+        ?string $traceId = null,
+        ?string $userId = null,
+        array $metadata = []
+    ) {
+        parent::__construct(
+            aggregateId: $aggregateId,
+            aggregateVersion: $aggregateVersion,
+            data: $data,
+            occurredAt: $occurredAt,
+            correlationId: $correlationId,
+            traceId: $traceId,
+            actorId: $userId,
+            metadata: $metadata
+        );
+    }
+
+    public function getEntityClass(): string
+    {
+        return \App\Modules\Bookings\Domain\Entities\Booking::class;
+    }
 }

@@ -32,6 +32,7 @@ class ModuleRegistry
         \App\Platform\Search\Module::class,
         \App\Platform\Reporting\Module::class,
         \App\Platform\Integrations\Module::class,
+        \App\Platform\Identity\Module::class,
     ];
 
     /**

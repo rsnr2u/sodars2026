@@ -1,0 +1,30 @@
+{
+  "name": "Identity",
+  "version": "1.0",
+  "enabled": true,
+  "providers": [
+    "App\\Platform\\Identity\\Infrastructure\\Providers\\IdentityServiceProvider"
+  ],
+  "routes": [
+    "App\\Platform\\Identity\\Presentation\\Routes\\api.php"
+  ],
+  "events_published": [
+    "App\\Platform\\Identity\\Domain\\Events\\UserLoggedIn",
+    "App\\Platform\\Identity\\Domain\\Events\\UserLoggedOut"
+  ],
+  "events_consumed": [],
+  "permissions": [
+    "identity.view",
+    "identity.manage",
+    "organization.view",
+    "organization.manage",
+    "team.view",
+    "team.manage",
+    "session.view",
+    "session.revoke",
+    "activity.view",
+    "activity.export"
+  ],
+  "dependencies": [],
+  "adr_references": []
+}

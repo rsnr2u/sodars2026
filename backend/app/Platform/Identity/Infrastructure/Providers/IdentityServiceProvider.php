@@ -16,6 +16,11 @@ class IdentityServiceProvider extends ServiceProvider
     {
         // Bind PermissionResolver contract
         $this->app->singleton(PermissionResolver::class, SpatiePermissionResolver::class);
+
+        // Bind IdentityContext request-scoped singleton
+        $this->app->singleton(\App\Platform\Identity\Application\Services\IdentityContext::class, function () {
+            return new \App\Platform\Identity\Application\Services\IdentityContext();
+        });
     }
 
     public function boot(): void

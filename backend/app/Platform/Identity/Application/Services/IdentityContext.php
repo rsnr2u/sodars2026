@@ -9,82 +9,114 @@ use App\Platform\Identity\Domain\Entities\OrganizationMember;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * IdentityContext — a queue-safe, CLI-safe, API-safe identity abstraction.
+ * IdentityContext — a request-scoped context container.
  *
- * Replaces direct auth()->user() calls throughout the platform.
- * Can be manually populated for jobs, schedulers, and CLI commands.
+ * All state is stored on the container singleton instance, automatically
+ * resetting between requests, tests, and queue jobs.
  */
 class IdentityContext
 {
-    protected static ?string $organizationId = null;
-    protected static ?string $branchId = null;
-    protected static ?string $userId = null;
-    protected static ?User $user = null;
+    protected ?string $organizationId = null;
+    protected ?string $branchId = null;
+    protected ?string $userId = null;
+    protected ?User $user = null;
 
     /**
-     * Initialize context from the authenticated user.
+     * Instance methods for setting and getting state.
      */
-    public static function initFromAuth(): void
+    public function performInitFromAuth(): void
     {
         if (Auth::check()) {
             /** @var User $user */
             $user = Auth::user();
-            self::$user = $user;
-            self::$userId = (string) $user->id;
-            self::$branchId = $user->branch_id;
-            self::$organizationId = $user->organization_id;
+            $this->user = $user;
+            $this->userId = (string) $user->id;
+            $this->branchId = $user->branch_id;
+            $this->organizationId = $user->organization_id;
 
-            // Resolve primary org from organization_members if not set on user
-            if (!self::$organizationId) {
-                $membership = OrganizationMember::where('user_id', self::$userId)
+            if (!$this->organizationId) {
+                $membership = OrganizationMember::where('user_id', $this->userId)
                     ->where('status', 'active')
                     ->first();
                 if ($membership) {
-                    self::$organizationId = $membership->organization_id;
+                    $this->organizationId = $membership->organization_id;
                 }
             }
         }
     }
 
-    /**
-     * Manually set context (for jobs, schedulers, CLI, tests).
-     */
+    public function performSetContext(?string $userId, ?string $organizationId = null, ?string $branchId = null): void
+    {
+        $this->userId = $userId;
+        $this->organizationId = $organizationId;
+        $this->branchId = $branchId;
+        $this->user = $userId ? User::find($userId) : null;
+    }
+
+    public function getUserId(): ?string
+    {
+        return $this->userId;
+    }
+
+    public function getOrganizationId(): ?string
+    {
+        return $this->organizationId;
+    }
+
+    public function getBranchId(): ?string
+    {
+        return $this->branchId;
+    }
+
+    public function getUser(): ?User
+    {
+        return $this->user;
+    }
+
+    public function performClear(): void
+    {
+        $this->organizationId = null;
+        $this->branchId = null;
+        $this->userId = null;
+        $this->user = null;
+    }
+
+    // ─────────────────────────────────────────────────────
+    // Static Proxies (Delegates to Container Singleton)
+    // ─────────────────────────────────────────────────────
+
+    public static function initFromAuth(): void
+    {
+        app(self::class)->performInitFromAuth();
+    }
+
     public static function setContext(?string $userId, ?string $organizationId = null, ?string $branchId = null): void
     {
-        self::$userId = $userId;
-        self::$organizationId = $organizationId;
-        self::$branchId = $branchId;
-        self::$user = $userId ? User::find($userId) : null;
+        app(self::class)->performSetContext($userId, $organizationId, $branchId);
     }
 
     public static function userId(): ?string
     {
-        return self::$userId;
+        return app(self::class)->getUserId();
     }
 
     public static function organizationId(): ?string
     {
-        return self::$organizationId;
+        return app(self::class)->getOrganizationId();
     }
 
     public static function branchId(): ?string
     {
-        return self::$branchId;
+        return app(self::class)->getBranchId();
     }
 
     public static function user(): ?User
     {
-        return self::$user;
+        return app(self::class)->getUser();
     }
 
-    /**
-     * Clear identity context (useful for tests and request lifecycle).
-     */
     public static function clear(): void
     {
-        self::$organizationId = null;
-        self::$branchId = null;
-        self::$userId = null;
-        self::$user = null;
+        app(self::class)->performClear();
     }
 }

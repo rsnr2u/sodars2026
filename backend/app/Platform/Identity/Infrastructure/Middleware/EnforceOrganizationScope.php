@@ -16,8 +16,8 @@ class EnforceOrganizationScope
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Initialize IdentityContext from the authenticated user
-        IdentityContext::initFromAuth();
+        // Initialize all platform contexts (Trace, Identity, etc.)
+        \App\Core\Context\ContextManager::boot();
 
         // Enforce organization context for tenant-scoped actions
         // If a user belongs to no organization and isn't a super_admin, we can block or let it proceed depending on policy.

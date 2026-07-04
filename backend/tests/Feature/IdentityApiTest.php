@@ -36,7 +36,7 @@ class IdentityApiTest extends ApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        IdentityContext::clear();
+        \App\Core\Context\ContextManager::clear();
         $this->seed(RolesAndPermissionsSeeder::class);
 
         $this->admin = User::factory()->create();
@@ -262,7 +262,7 @@ class IdentityApiTest extends ApiTestCase
     public function test_activity_logging_and_queries(): void
     {
         $this->actingAs($this->user1);
-        IdentityContext::initFromAuth();
+        \App\Core\Context\ContextManager::boot();
 
         // Record some dummy activity
         ActivityService::record(

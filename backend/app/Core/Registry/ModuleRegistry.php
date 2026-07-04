@@ -33,6 +33,7 @@ class ModuleRegistry
         \App\Platform\Reporting\Module::class,
         \App\Platform\Integrations\Module::class,
         \App\Platform\Identity\Module::class,
+        \App\Platform\Audit\Module::class,
     ];
 
     /**

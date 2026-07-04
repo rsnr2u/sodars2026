@@ -1,0 +1,25 @@
+{
+  "name": "Audit",
+  "version": "1.0",
+  "enabled": true,
+  "providers": [
+    "App\\Platform\\Audit\\Infrastructure\\Providers\\AuditServiceProvider"
+  ],
+  "routes": [
+    "App\\Platform\\Audit\\Presentation\\Routes\\api.php"
+  ],
+  "events_published": [],
+  "events_consumed": [
+    "App\\Platform\\Identity\\Domain\\Events\\UserLoggedIn",
+    "App\\Platform\\Identity\\Domain\\Events\\UserLoggedOut",
+    "App\\Platform\\Workflows\\Domain\\Events\\WorkflowStarted",
+    "App\\Platform\\Workflows\\Domain\\Events\\WorkflowCompleted"
+  ],
+  "permissions": [
+    "audit.view",
+    "audit.export",
+    "compliance.view"
+  ],
+  "dependencies": [],
+  "adr_references": []
+}

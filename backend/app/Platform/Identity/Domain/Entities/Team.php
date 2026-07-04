@@ -10,11 +10,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 use App\Platform\Identity\Infrastructure\Traits\BelongsToOrganization;
+use App\Platform\Audit\Infrastructure\Traits\Auditable;
 
 class Team extends Model
 {
     use HasUuid;
     use BelongsToOrganization;
+    use Auditable;
+
+    public array $auditExclude = ['description']; // Exclude description from snapshots to test exclusion
 
     protected $table = 'teams';
 

@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace App\Modules\Campaigns\Domain\Entities;
 
-use App\Core\Models\BaseModel;
+use App\Core\Models\BaseBusinessModel;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class CampaignActivity extends BaseModel
+class CampaignActivity extends BaseBusinessModel
 {
     protected $table = 'campaign_activities';
 
     protected $fillable = [
+        'organization_id',
         'campaign_id',
         'performed_by',
         'event_name',

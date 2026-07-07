@@ -17,18 +17,15 @@ class WorkflowDefinition extends Model
     protected $fillable = [
         'name',
         'key',
-        'version',
-        'entity_type',
         'is_active',
     ];
 
     protected $casts = [
-        'version' => 'integer',
         'is_active' => 'boolean',
     ];
 
-    public function steps(): HasMany
+    public function versions(): HasMany
     {
-        return $this->hasMany(WorkflowDefinitionStep::class, 'definition_id')->orderBy('order', 'asc');
+        return $this->hasMany(WorkflowDefinitionVersion::class, 'definition_id')->orderBy('version', 'desc');
     }
 }

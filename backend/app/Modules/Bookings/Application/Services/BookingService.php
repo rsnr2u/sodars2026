@@ -18,7 +18,7 @@ use App\Modules\Bookings\Application\DTOs\RecordPaymentData;
 use App\Modules\Bookings\Application\DTOs\BookingFilterData;
 use App\Modules\Bookings\Application\DTOs\BookingDashboardDTO;
 use App\Modules\Bookings\Domain\Entities\Booking;
-use App\Modules\Bookings\Domain\Entities\Payment;
+use App\Modules\Finance\Domain\Entities\Payment;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class BookingService

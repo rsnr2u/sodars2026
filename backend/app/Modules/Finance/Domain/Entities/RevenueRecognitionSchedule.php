@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace App\Modules\Finance\Domain\Entities;
 
-use App\Core\Models\BaseModel;
+use App\Core\Models\BaseBusinessModel;
 use App\Modules\Bookings\Domain\Entities\Booking;
 use App\Modules\Bookings\Domain\Entities\BookingItem;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class RevenueRecognitionSchedule extends BaseModel
+class RevenueRecognitionSchedule extends BaseBusinessModel
 {
     protected $table = 'revenue_recognition_schedules';
 
     protected $fillable = [
+        'organization_id',
         'id',
         'booking_id',
         'booking_item_id',

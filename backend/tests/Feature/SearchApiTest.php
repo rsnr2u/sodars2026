@@ -276,7 +276,7 @@ class SearchApiTest extends ApiTestCase
         // Assert items from all 3 different indexes are found in the merged global search results
         $this->assertTrue($results->contains('index', 'inventories'));
         $this->assertTrue($results->contains('index', 'bookings'));
-        $this->assertTrue($results->contains('index', 'invoices'));
+        $this->assertTrue($results->contains('index', 'finance_invoices'));
     }
 
     public function test_saved_searches_crud(): void

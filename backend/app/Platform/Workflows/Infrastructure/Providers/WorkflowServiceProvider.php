@@ -16,11 +16,11 @@ class WorkflowServiceProvider extends ServiceProvider
             return new WorkflowRegistry();
         });
 
-        $this->app->singleton(WorkflowEngineService::class, function ($app) {
-            return new WorkflowEngineService(
-                $app->make(WorkflowRegistry::class)
-            );
-        });
+        $this->app->singleton(\App\Platform\Workflows\Domain\Services\WorkflowDefinitionValidator::class);
+        $this->app->singleton(\App\Platform\Workflows\Domain\Services\WorkflowDefinitionCompiler::class);
+        $this->app->singleton(\App\Platform\Workflows\Domain\Services\WorkflowDefinitionPublisher::class);
+
+        $this->app->singleton(WorkflowEngineService::class);
     }
 
     public function boot(): void

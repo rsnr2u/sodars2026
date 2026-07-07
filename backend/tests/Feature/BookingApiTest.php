@@ -6,7 +6,7 @@ namespace Tests\Feature;
 
 use App\Modules\Branches\Domain\Entities\Branch;
 use App\Modules\Bookings\Domain\Entities\Booking;
-use App\Modules\Bookings\Domain\Entities\Payment;
+use App\Modules\Finance\Domain\Entities\Payment;
 use App\Modules\Inventory\Domain\Entities\Inventory;
 use App\Modules\Inventory\Domain\Entities\InventoryFace;
 use App\Modules\Inventory\Domain\Entities\InventoryPricing;

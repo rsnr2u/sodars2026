@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace App\Modules\Providers\Domain\Entities;
 
-use App\Core\Models\BaseModel;
+use App\Core\Models\BaseBusinessModel;
 use App\Modules\Providers\Domain\Enums\BillingCycle;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ProviderSubscription extends BaseModel
+class ProviderSubscription extends BaseBusinessModel
 {
     protected $table = 'provider_subscriptions';
 
     protected $fillable = [
+        'organization_id',
         'provider_id',
         'subscription_plan_id',
         'max_active_screens',

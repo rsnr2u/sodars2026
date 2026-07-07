@@ -4,20 +4,21 @@ declare(strict_types=1);
 
 namespace App\Modules\Finance\Domain\Entities;
 
-use App\Core\Models\BaseModel;
 use App\Modules\Finance\Domain\Enums\InvoiceStatus;
 use App\Modules\Finance\Domain\Enums\InvoiceType;
+use App\Core\Models\BaseBusinessModel;
 use App\Modules\Branches\Domain\Entities\Branch;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Platform\Search\Domain\Contracts\Searchable;
 
-class Invoice extends BaseModel implements Searchable
+class Invoice extends BaseBusinessModel implements Searchable
 {
     protected $table = 'invoices';
 
     protected $fillable = [
+        'organization_id',
         'id',
         'invoice_number',
         'booking_id',
@@ -110,7 +111,7 @@ class Invoice extends BaseModel implements Searchable
 
     public static function getSearchIndexName(): string
     {
-        return 'invoices';
+        return 'finance_invoices';
     }
 
     public static function getSearchFieldMappings(): array

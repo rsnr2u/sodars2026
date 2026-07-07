@@ -9,7 +9,6 @@ use App\Core\Services\OutboxService;
 use App\Models\User;
 use App\Modules\Providers\Application\DTOs\AddStaffData;
 use App\Modules\Providers\Domain\Entities\ProviderStaff;
-use App\Modules\Providers\Domain\Entities\ProviderActivity;
 use App\Modules\Providers\Domain\Events\ProviderStaffAssigned;
 use App\Modules\Providers\Domain\Repositories\ProviderReadRepositoryInterface;
 use Illuminate\Support\Facades\Auth;
@@ -29,7 +28,8 @@ class AddStaffAction
      */
     public function execute(string $providerId, AddStaffData $data): ProviderStaff
     {
-        $this->providerReadRepo->findOrFail($providerId);
+        $provider = $this->providerReadRepo->findOrFail($providerId);
+        $orgId = $provider->organization_id;
 
         $user = User::create([
             'id' => (string) Str::uuid(),
@@ -37,12 +37,14 @@ class AddStaffAction
             'email' => $data->email,
             'password' => Hash::make($data->password),
             'email_verified_at' => now(),
+            'organization_id' => $orgId,
         ]);
 
         $user->assignRole('provider_staff');
 
         /** @var ProviderStaff $staff */
         $staff = ProviderStaff::create([
+            'organization_id' => $orgId,
             'provider_id' => $providerId,
             'user_id' => $user->id,
             'is_primary' => $data->isPrimary,
@@ -57,7 +59,7 @@ class AddStaffAction
             'is_primary' => $data->isPrimary,
         ];
 
-        // 3. Outbox
+        // 1. Outbox
         $this->outboxService->record(
             aggregateType: 'Provider',
             aggregateId: $providerId,
@@ -67,7 +69,7 @@ class AddStaffAction
             schemaVersion: '1.0.0'
         );
 
-        // 4. Dispatch Domain Event
+        // 2. Dispatch Domain Event
         Event::dispatch(new ProviderStaffAssigned(
             aggregateId: $providerId,
             aggregateVersion: 1,
@@ -77,17 +79,6 @@ class AddStaffAction
             traceId: TraceContext::traceId(),
             userId: Auth::id() ? (string) Auth::id() : null
         ));
-
-        // 5. Activity Timeline log
-        ProviderActivity::create([
-            'provider_id' => $providerId,
-            'activity_type' => 'StaffAdded',
-            'description' => "Invited staff member [{$data->name}] ({$data->email}).",
-            'causation_id' => TraceContext::causationId(),
-            'correlation_id' => TraceContext::correlationId(),
-            'trace_id' => TraceContext::traceId(),
-            'created_by' => Auth::id() ? (string) Auth::id() : null,
-        ]);
 
         return $staff;
     }

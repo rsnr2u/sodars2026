@@ -25,6 +25,7 @@ abstract class BusinessEvent
     public readonly string $correlationId;
     public readonly ?string $requestId;
     public readonly ?string $sessionId;
+    public readonly int $eventVersion;
 
     /**
      * Standard ERP business event envelope.
@@ -42,8 +43,10 @@ abstract class BusinessEvent
         ?string $actorId = null,
         ?string $requestId = null,
         ?string $sessionId = null,
-        public readonly array $metadata = []
+        public readonly array $metadata = [],
+        int $eventVersion = 1
     ) {
+        $this->eventVersion = $eventVersion;
         $this->eventId = $eventId ?? (string) Str::uuid();
         $this->occurredAt = $occurredAt ? CarbonImmutable::parse($occurredAt) : CarbonImmutable::now();
 

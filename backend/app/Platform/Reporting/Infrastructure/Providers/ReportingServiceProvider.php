@@ -10,6 +10,20 @@ use App\Platform\Reporting\Infrastructure\Reports\TrialBalanceReport;
 use App\Platform\Reporting\Infrastructure\Reports\InventoryOccupancyReport;
 use App\Platform\Reporting\Infrastructure\Reports\BookingPerformanceReport;
 use App\Platform\Reporting\Infrastructure\Reports\LeadSourceReport;
+use App\Platform\Reporting\Infrastructure\Reports\RevenueReport;
+use App\Platform\Reporting\Infrastructure\Reports\ReceivablesReport;
+use App\Platform\Reporting\Infrastructure\Reports\OutstandingInvoicesReport;
+use App\Platform\Reporting\Infrastructure\Reports\ProviderSettlementReport;
+use App\Platform\Reporting\Infrastructure\Reports\ProviderPerformanceReport;
+use App\Platform\Reporting\Infrastructure\Reports\ProviderActivityReport;
+use App\Platform\Reporting\Infrastructure\Reports\CampaignPerformanceReport;
+use App\Platform\Reporting\Infrastructure\Reports\CampaignTimelineReport;
+use App\Platform\Reporting\Infrastructure\Reports\CampaignUtilizationReport;
+use App\Platform\Reporting\Infrastructure\Reports\CampaignActivityReport;
+use App\Platform\Reporting\Infrastructure\Reports\CampaignOccupancyReport;
+use App\Platform\Reporting\Infrastructure\Reports\CampaignSettlementReport;
+use App\Platform\Reporting\Infrastructure\Reports\CampaignRevenueReport;
+use App\Platform\Reporting\Infrastructure\Reports\CampaignBudgetVarianceReport;
 use App\Platform\Reporting\Infrastructure\Providers\ValueCardProvider;
 use App\Platform\Reporting\Infrastructure\Providers\ChartProvider;
 use Illuminate\Support\ServiceProvider;
@@ -27,6 +41,66 @@ class ReportingServiceProvider extends ServiceProvider
             $registry->registerReport(InventoryOccupancyReport::class);
             $registry->registerReport(BookingPerformanceReport::class);
             $registry->registerReport(LeadSourceReport::class);
+            $registry->registerReport(RevenueReport::class);
+            $registry->registerReport(ReceivablesReport::class);
+            $registry->registerReport(OutstandingInvoicesReport::class);
+            $registry->registerReport(ProviderSettlementReport::class);
+            $registry->registerReport(ProviderPerformanceReport::class);
+            $registry->registerReport(ProviderActivityReport::class);
+            $registry->registerReport(CampaignPerformanceReport::class);
+            $registry->registerReport(CampaignTimelineReport::class);
+            $registry->registerReport(CampaignUtilizationReport::class);
+            $registry->registerReport(CampaignActivityReport::class);
+            $registry->registerReport(CampaignOccupancyReport::class);
+            $registry->registerReport(CampaignSettlementReport::class);
+            $registry->registerReport(CampaignRevenueReport::class);
+            $registry->registerReport(CampaignBudgetVarianceReport::class);
+
+            // Wallet Reports
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\WalletStatementReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\WalletBalancesReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\WalletActivityReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\WalletAgingReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\WithdrawalHistoryReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\SettlementPayoutReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\WalletReconciliationReport::class);
+
+            // Transport Reports
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\FleetUtilizationReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\FleetMaintenanceReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\FuelEfficiencyReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\RouteAnalysisReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\VehicleDowntimeReport::class);
+
+            // IoT Reports
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\DeviceInventoryReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\DeviceHealthReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\DeviceUptimeReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\DeviceAvailabilityReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\TelemetryStatisticsReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\FirmwareComplianceReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\DeviceCommandReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\DeviceAlertHistoryReport::class);
+
+            // Operations Reports
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\ScheduleReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\DispatchReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\CapacityPlanningReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\WorkloadReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\ResourceUtilizationReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\CalendarReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\ConflictReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\ScheduleTimelineReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\SLAComplianceReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\ResourceIdleTimeReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\ShiftCoverageReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\AssignmentAccuracyReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\OptimizationSavingsReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\ScheduleVarianceReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\PlannedVsActualReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\ETAAccuracyReport::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\RecurringScheduleEffectiveness::class);
+            $registry->registerReport(\App\Platform\Reporting\Infrastructure\Reports\ConflictResolutionTimeReport::class);
 
             // Register Export Drivers
             $registry->registerExportDriver(CsvExportDriver::class);

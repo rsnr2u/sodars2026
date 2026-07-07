@@ -8,11 +8,11 @@ enum TransactionType: string
 {
     case Deposit = 'deposit';
     case Withdrawal = 'withdrawal';
-    case Transfer = 'transfer';
     case Settlement = 'settlement';
-    case Refund = 'refund';
-    case Adjustment = 'adjustment';
+    case Transfer = 'transfer';
     case Commission = 'commission';
+    case Adjustment = 'adjustment';
+    case Refund = 'refund';
     case Reversal = 'reversal';
-    case Correction = 'correction';
+    case Fee = 'fee';
 }

@@ -18,6 +18,7 @@ class CreateSubscriptionStage
         $provider = $passable['provider'];
 
         ProviderSubscription::create([
+            'organization_id' => $provider->organization_id,
             'provider_id' => $provider->id,
             'subscription_plan_id' => null,
             'max_active_screens' => 2,

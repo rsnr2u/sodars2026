@@ -41,5 +41,11 @@ class InventoryServiceProvider extends ServiceProvider
         Gate::policy(Inventory::class, InventoryPolicy::class);
 
         $this->loadRoutesFrom(__DIR__ . '/../../Presentation/Routes/v1/api.php');
+
+        // Listen for IoT telemetry processed events
+        \Illuminate\Support\Facades\Event::listen(
+            \App\Modules\IoT\Domain\Events\DeviceTelemetryProcessed::class,
+            \App\Modules\Inventory\Application\Listeners\InventoryTelemetryListener::class
+        );
     }
 }

@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace App\Platform\Accounting\ChartOfAccounts;
 
-use App\Core\Models\BaseModel;
+use App\Core\Models\BaseBusinessModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class LedgerAccount extends BaseModel
+class LedgerAccount extends BaseBusinessModel
 {
     protected $table = 'ledger_accounts';
 
     protected $fillable = [
+        'organization_id',
         'id',
         'parent_account_id',
         'name',

@@ -18,27 +18,35 @@ class WorkflowInstance extends Model
     protected $table = 'workflow_instances';
 
     protected $fillable = [
-        'definition_id',
+        'definition_version_id',
         'entity_id',
         'entity_type',
+        'organization_id',
         'status',
-        'current_step_index',
+        'current_state',
+        'dsl_snapshot',
         'context_snapshot',
         'started_at',
+        'due_at',
         'completed_at',
+        'cancelled_at',
+        'sla_status',
+        'current_step_index',
     ];
 
     protected $casts = [
         'status' => WorkflowStatus::class,
-        'current_step_index' => 'integer',
+        'dsl_snapshot' => 'array',
         'context_snapshot' => 'array',
         'started_at' => 'datetime',
+        'due_at' => 'datetime',
         'completed_at' => 'datetime',
+        'cancelled_at' => 'datetime',
     ];
 
-    public function definition(): BelongsTo
+    public function definitionVersion(): BelongsTo
     {
-        return $this->belongsTo(WorkflowDefinition::class, 'definition_id');
+        return $this->belongsTo(WorkflowDefinitionVersion::class, 'definition_version_id');
     }
 
     public function entity(): MorphTo
@@ -54,5 +62,10 @@ class WorkflowInstance extends Model
     public function histories(): HasMany
     {
         return $this->hasMany(WorkflowHistory::class, 'instance_id')->orderBy('created_at', 'asc');
+    }
+
+    public function variables(): HasMany
+    {
+        return $this->hasMany(WorkflowVariable::class, 'instance_id');
     }
 }

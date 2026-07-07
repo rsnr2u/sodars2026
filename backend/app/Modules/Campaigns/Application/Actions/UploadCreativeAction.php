@@ -4,45 +4,87 @@ declare(strict_types=1);
 
 namespace App\Modules\Campaigns\Application\Actions;
 
-use App\Core\Context\TraceContext;
-use App\Core\Services\OutboxService;
 use App\Modules\Campaigns\Application\DTOs\UploadCreativeData;
 use App\Modules\Campaigns\Domain\Entities\Campaign;
 use App\Modules\Campaigns\Domain\Entities\CampaignCreative;
-use App\Modules\Campaigns\Domain\Entities\CampaignActivity;
-use App\Modules\Campaigns\Domain\Enums\CampaignStatus;
 use App\Modules\Campaigns\Domain\Enums\CreativeStatus;
-use App\Modules\Campaigns\Domain\Events\CreativeUploaded;
 use App\Modules\Campaigns\Domain\Repositories\CampaignReadRepositoryInterface;
-use App\Modules\Campaigns\Domain\Repositories\CampaignWriteRepositoryInterface;
 use App\Modules\Campaigns\Domain\Repositories\CampaignCreativeRepositoryInterface;
-use App\Platform\Shared\Domain\Entities\MediaLibrary;
+use App\Modules\Campaigns\Application\Services\CampaignLifecycleService;
+use App\Platform\DAM\Domain\Entities\Asset;
+use App\Platform\DAM\Domain\Entities\AssetVersion;
+use App\Platform\DAM\Domain\Entities\StoredFile;
+use App\Platform\DAM\Domain\Enums\AssetStatus;
+use App\Platform\DAM\Domain\Enums\AssetType;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
 
 class UploadCreativeAction
 {
     public function __construct(
         protected CampaignReadRepositoryInterface $campaignReadRepo,
-        protected CampaignWriteRepositoryInterface $campaignWriteRepo,
         protected CampaignCreativeRepositoryInterface $creativeRepo,
-        protected OutboxService $outboxService
+        protected CampaignLifecycleService $lifecycleService
     ) {}
 
     public function execute(string $campaignId, UploadCreativeData $dto): CampaignCreative
     {
         return DB::transaction(function () use ($campaignId, $dto) {
+            /** @var Campaign $campaign */
             $campaign = $this->campaignReadRepo->findOrFail($campaignId);
+            $orgId = $campaign->organization_id;
 
             // Determine version
             $latestVer = $campaign->creatives()->max('version') ?? 0;
             $newVersion = $latestVer + 1;
 
-            // Create creative
+            // 1. Create StoredFile (physical representation)
+            $storedFile = StoredFile::create([
+                'id' => (string) Str::uuid(),
+                'organization_id' => $orgId,
+                'storage_provider' => 'local',
+                'disk' => 'public',
+                'path' => $dto->filePath,
+                'checksum_sha256' => hash('sha256', $dto->filePath),
+                'checksum_md5' => md5($dto->filePath),
+                'mime_type' => $this->getMimeType($dto->fileType),
+                'file_size' => $dto->fileSizeBytes ?? 1024,
+            ]);
+
+            $assetType = match (strtolower($dto->fileType)) {
+                'jpg', 'jpeg', 'png' => AssetType::IMAGE,
+                'mp4' => AssetType::VIDEO,
+                'pdf' => AssetType::DOCUMENT,
+                'zip' => AssetType::ARCHIVE,
+                default => AssetType::OTHER,
+            };
+
+            // 2. Create Asset (logical representation)
+            $asset = Asset::create([
+                'id' => (string) Str::uuid(),
+                'organization_id' => $orgId,
+                'title' => $dto->fileName,
+                'asset_type' => $assetType,
+                'status' => AssetStatus::READY,
+            ]);
+
+            // 3. Create Version
+            $version = AssetVersion::create([
+                'id' => (string) Str::uuid(),
+                'organization_id' => $orgId,
+                'asset_id' => $asset->id,
+                'file_id' => $storedFile->id,
+                'version_number' => 1,
+            ]);
+            $asset->update(['current_version_id' => $version->id]);
+
+            // 4. Create Creative pointing to the asset
+            /** @var CampaignCreative $creative */
             $creative = $this->creativeRepo->create([
                 'id' => (string) Str::uuid(),
+                'organization_id' => $orgId,
                 'campaign_id' => $campaignId,
+                'asset_id' => $asset->id,
                 'file_name' => $dto->fileName,
                 'file_path' => $dto->filePath,
                 'file_type' => $dto->fileType,
@@ -51,64 +93,21 @@ class UploadCreativeAction
                 'status' => CreativeStatus::Pending->value,
             ]);
 
-            // Add polymorphically to Shared MediaLibrary
-            MediaLibrary::create([
-                'id' => (string) Str::uuid(),
-                'file_name' => $dto->fileName,
-                'file_path' => $dto->filePath,
-                'mime_type' => $this->getMimeType($dto->fileType),
-                'file_size_bytes' => $dto->fileSizeBytes ?? 0,
-                'mediable_type' => CampaignCreative::class,
-                'mediable_id' => $creative->id,
-            ]);
-
-            // Shift campaign status to artwork_pending
-            if ($campaign->status === CampaignStatus::Draft) {
-                $this->campaignWriteRepo->update($campaignId, [
-                    'status' => CampaignStatus::ArtworkPending->value,
-                ]);
+            // Shift campaign status to planning/artwork_pending if in draft
+            if ($campaign->status->value === 'draft') {
+                $this->lifecycleService->transitionTo($campaign, 'planning');
             }
 
             $eventData = [
                 'creative_id' => $creative->id,
                 'campaign_id' => $campaignId,
+                'asset_id' => $asset->id,
                 'file_path' => $dto->filePath,
                 'version' => $newVersion,
             ];
 
-            // Outbox
-            $this->outboxService->record(
-                aggregateType: 'Campaign',
-                aggregateId: $campaignId,
-                eventName: 'campaign.creative.uploaded.v1',
-                data: $eventData,
-                eventVersion: 1,
-                schemaVersion: '1.0.0'
-            );
-
-            // Domain Event
-            Event::dispatch(new CreativeUploaded(
-                aggregateId: $campaignId,
-                aggregateVersion: 1,
-                data: $eventData,
-                occurredAt: now()->toIso8601String(),
-                correlationId: TraceContext::correlationId() ?? (string) Str::uuid(),
-                traceId: TraceContext::traceId() ?? (string) Str::uuid()
-            ));
-
-            // Activity Log
-            CampaignActivity::create([
-                'id' => (string) Str::uuid(),
-                'campaign_id' => $campaignId,
-                'performed_by' => auth()->id(),
-                'event_name' => 'campaign.creative.uploaded.v1',
-                'action' => 'CreativeUploaded',
-                'old_values' => null,
-                'new_values' => $creative->toArray(),
-                'ip' => request()->ip(),
-                'user_agent' => request()->userAgent(),
-                'trace_id' => TraceContext::traceId() ?? (string) Str::uuid(),
-            ]);
+            // 5. Delegate to canonical CampaignLifecycleService
+            $this->lifecycleService->recordCreativeAdded($campaign, $eventData);
 
             return $creative;
         });

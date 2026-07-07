@@ -14,17 +14,19 @@ class WorkflowHistory extends Model
 
     protected $table = 'workflow_histories';
 
+    // History logs are append-only and do not require Laravel updated_at timestamps
+    public $timestamps = false;
+
     protected $fillable = [
         'instance_id',
-        'from_status',
-        'to_status',
+        'task_id',
+        'from_state',
+        'to_state',
         'action',
         'comments',
         'actioned_by',
         'created_at',
     ];
-
-    public $timestamps = false;
 
     protected $casts = [
         'created_at' => 'datetime',
@@ -33,5 +35,10 @@ class WorkflowHistory extends Model
     public function instance(): BelongsTo
     {
         return $this->belongsTo(WorkflowInstance::class, 'instance_id');
+    }
+
+    public function task(): BelongsTo
+    {
+        return $this->belongsTo(WorkflowTask::class, 'task_id');
     }
 }

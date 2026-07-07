@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace App\Modules\Providers\Domain\Entities;
 
-use App\Core\Models\BaseModel;
+use App\Core\Models\BaseBusinessModel;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ProviderStaff extends BaseModel
+class ProviderStaff extends BaseBusinessModel
 {
     protected $table = 'provider_staff';
 
     protected $fillable = [
+        'organization_id',
         'provider_id',
         'user_id',
         'is_primary',

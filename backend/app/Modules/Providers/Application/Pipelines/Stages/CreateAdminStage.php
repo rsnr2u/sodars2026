@@ -27,6 +27,7 @@ class CreateAdminStage
             'email' => $dto->email,
             'password' => Hash::make($dto->password),
             'email_verified_at' => now(),
+            'organization_id' => $provider->organization_id, // ensure user inherits organization context
         ]);
 
         // Assign Spatie Role
@@ -34,6 +35,7 @@ class CreateAdminStage
 
         // Map as primary staff member
         ProviderStaff::create([
+            'organization_id' => $provider->organization_id,
             'provider_id' => $provider->id,
             'user_id' => $user->id,
             'is_primary' => true,

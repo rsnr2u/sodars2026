@@ -18,6 +18,7 @@ class CreateAddressStage
         $provider = $passable['provider'];
 
         ProviderAddress::create([
+            'organization_id' => $provider->organization_id,
             'provider_id' => $provider->id,
             'country_id' => $passable['country_id'],
             'state_id' => $passable['state_id'],

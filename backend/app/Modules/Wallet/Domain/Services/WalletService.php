@@ -8,16 +8,20 @@ use App\Core\ValueObjects\Money;
 use App\Core\ValueObjects\Currency;
 use App\Platform\Accounting\ChartOfAccounts\LedgerAccount;
 use App\Platform\Accounting\ChartOfAccounts\AccountType;
+use App\Platform\Accounting\ChartOfAccounts\AccountingPeriod;
 use App\Platform\Accounting\Posting\PostingEngine;
 use App\Platform\Accounting\Posting\JournalData;
 use App\Platform\Accounting\Posting\LedgerLineData;
 use App\Modules\Wallet\Domain\Entities\Wallet;
 use App\Modules\Wallet\Domain\Entities\WalletTransaction;
 use App\Modules\Wallet\Domain\Entities\Withdrawal;
-use App\Modules\Wallet\Domain\Entities\WalletActivity;
 use App\Modules\Wallet\Domain\Enums\TransactionType;
 use App\Modules\Wallet\Domain\Enums\TransactionStatus;
 use App\Modules\Wallet\Domain\Enums\WithdrawalStatus;
+use App\Modules\Wallet\Domain\Enums\PostingStatus;
+use App\Modules\Wallet\Domain\Enums\WalletState;
+use App\Modules\Wallet\Application\Services\WalletLifecycleService;
+use App\Platform\Identity\Application\Services\IdentityContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -27,7 +31,7 @@ class WalletService
 {
     public function __construct(
         protected PostingEngine $postingEngine,
-        protected WalletBalanceCalculator $balanceCalculator
+        protected WalletLifecycleService $lifecycleService
     ) {}
 
     /**
@@ -36,6 +40,8 @@ class WalletService
     public function createWallet(Model $holder, string $walletType, string $currency = 'INR'): Wallet
     {
         return DB::transaction(function () use ($holder, $walletType, $currency) {
+            $orgId = $holder->organization_id ?? IdentityContext::organizationId();
+
             // Find liability parent account
             $parent = LedgerAccount::where('code', '2000-LIABILITIES')->first();
 
@@ -44,6 +50,7 @@ class WalletService
             // Create a dedicated general ledger account
             $ledgerAccount = LedgerAccount::create([
                 'id' => (string) Str::uuid(),
+                'organization_id' => $orgId,
                 'parent_account_id' => $parent?->id,
                 'name' => "Wallet Account for " . class_basename($holder) . " #{$holder->id}",
                 'code' => $accountCode,
@@ -55,23 +62,25 @@ class WalletService
                 'currency' => $currency,
             ]);
 
+            // Generate unique human-readable wallet number
+            $walletNumber = 'WAL-' . mt_rand(100000, 999999);
+            while (Wallet::where('wallet_number', $walletNumber)->exists()) {
+                $walletNumber = 'WAL-' . mt_rand(100000, 999999);
+            }
+
             $wallet = Wallet::create([
                 'id' => (string) Str::uuid(),
+                'organization_id' => $orgId,
+                'wallet_number' => $walletNumber,
                 'holder_type' => $holder->getMorphClass(),
                 'holder_id' => $holder->id,
                 'ledger_account_id' => $ledgerAccount->id,
                 'wallet_type' => $walletType,
                 'currency' => $currency,
-                'status' => 'active',
+                'status' => WalletState::Active->value,
             ]);
 
-            WalletActivity::create([
-                'id' => (string) Str::uuid(),
-                'wallet_id' => $wallet->id,
-                'performed_by' => $holder->id,
-                'action' => 'Created',
-                'description' => "Wallet created with account {$accountCode}",
-            ]);
+            $this->lifecycleService->recordCreation($wallet);
 
             return $wallet;
         });
@@ -82,7 +91,10 @@ class WalletService
      */
     public function deposit(Wallet $wallet, int $amountCents, string $reference, array $metadata = []): WalletTransaction
     {
+        $this->ensurePeriodNotLocked();
+
         return DB::transaction(function () use ($wallet, $amountCents, $reference, $metadata) {
+            $orgId = $wallet->organization_id;
             $bankAccount = LedgerAccount::where('code', '1110-BANK')->firstOrFail();
             $walletAccount = $wallet->ledgerAccount;
 
@@ -102,7 +114,7 @@ class WalletService
             $lines = [
                 new LedgerLineData(
                     accountId: $bankAccount->id,
-                    entryType: 'debit', // Asset normal balance DR increases
+                    entryType: 'debit',
                     money: $money,
                     description: "Cash received for Deposit: {$reference}",
                     ledgerableType: Wallet::class,
@@ -110,7 +122,7 @@ class WalletService
                 ),
                 new LedgerLineData(
                     accountId: $walletAccount->id,
-                    entryType: 'credit', // Liability normal balance CR increases
+                    entryType: 'credit',
                     money: $money,
                     description: "Wallet credited for Deposit: {$reference}",
                     ledgerableType: Wallet::class,
@@ -118,29 +130,49 @@ class WalletService
                 )
             ];
 
+            // Enforce Ledger Integrity invariant
             $journal = $this->postingEngine->post($journalData, $lines);
+            if (!$journal) {
+                throw new \RuntimeException("Ledger journal posting failed. Rolling back.");
+            }
 
-            $currentBalance = $this->balanceCalculator->calculate($wallet);
+            // Sequence & dynamic balance calculation
+            $nextSequence = $this->getNextSequenceNumber($wallet->id);
+            $txnRef = 'TXN-' . mt_rand(100000, 999999);
+            while (WalletTransaction::where('transaction_reference', $txnRef)->exists()) {
+                $txnRef = 'TXN-' . mt_rand(100000, 999999);
+            }
 
+            $currentBalance = $this->calculateDynamicBalance($wallet->id);
+
+            // Create transaction in database bypass observer check (it is a fresh insert)
             $tx = WalletTransaction::create([
                 'id' => (string) Str::uuid(),
+                'organization_id' => $orgId,
                 'wallet_id' => $wallet->id,
                 'ledger_journal_id' => $journal->id,
                 'amount_cents' => $amountCents,
                 'running_balance_snapshot' => $currentBalance,
                 'type' => TransactionType::Deposit->value,
                 'status' => TransactionStatus::Completed->value,
+                'posting_status' => PostingStatus::Posted->value,
                 'reference_number' => $reference,
+                'transaction_reference' => $txnRef,
+                'sequence_number' => $nextSequence,
                 'metadata' => $metadata,
             ]);
 
-            WalletActivity::create([
-                'id' => (string) Str::uuid(),
+            // Update cached balance on wallet projection
+            $wallet->update(['balance' => $currentBalance]);
+
+            $eventData = [
+                'transaction_id' => $tx->id,
                 'wallet_id' => $wallet->id,
-                'performed_by' => $wallet->holder_id,
-                'action' => 'Deposit',
-                'description' => "Deposit of {$money->getAmount()} cents verified.",
-            ]);
+                'amount_cents' => $amountCents,
+                'transaction_reference' => $txnRef,
+            ];
+
+            $this->lifecycleService->recordDeposit($wallet, $eventData);
 
             return $tx;
         });
@@ -152,27 +184,36 @@ class WalletService
     public function requestWithdrawal(Wallet $wallet, int $amountCents, array $bankDetails): Withdrawal
     {
         return DB::transaction(function () use ($wallet, $amountCents, $bankDetails) {
-            $balance = $this->balanceCalculator->calculate($wallet);
+            // Read aggregate authoritative balance inside database transaction (pessimistic locking equivalent)
+            $balance = $this->calculateDynamicBalance($wallet->id);
 
             if ($balance < $amountCents) {
                 throw new InvalidArgumentException("Insufficient wallet balance.");
             }
 
+            // Generate withdrawal business number
+            $withdrawalNumber = 'WDR-' . mt_rand(100000, 999999);
+            while (Withdrawal::where('withdrawal_number', $withdrawalNumber)->exists()) {
+                $withdrawalNumber = 'WDR-' . mt_rand(100000, 999999);
+            }
+
             $withdrawal = Withdrawal::create([
                 'id' => (string) Str::uuid(),
+                'organization_id' => $wallet->organization_id,
+                'withdrawal_number' => $withdrawalNumber,
                 'wallet_id' => $wallet->id,
                 'amount_cents' => $amountCents,
                 'bank_account_details' => $bankDetails,
                 'status' => WithdrawalStatus::Requested->value,
             ]);
 
-            WalletActivity::create([
-                'id' => (string) Str::uuid(),
+            $eventData = [
+                'withdrawal_id' => $withdrawal->id,
                 'wallet_id' => $wallet->id,
-                'performed_by' => $wallet->holder_id,
-                'action' => 'WithdrawalRequested',
-                'description' => "Requested payout withdrawal of {$amountCents} cents.",
-            ]);
+                'amount_cents' => $amountCents,
+            ];
+
+            $this->lifecycleService->recordWithdrawalRequested($wallet, $eventData);
 
             return $withdrawal;
         });
@@ -183,6 +224,8 @@ class WalletService
      */
     public function completeWithdrawal(Withdrawal $withdrawal, string $payoutReference): void
     {
+        $this->ensurePeriodNotLocked();
+
         DB::transaction(function () use ($withdrawal, $payoutReference) {
             $withdrawal->refresh();
 
@@ -191,6 +234,13 @@ class WalletService
             }
 
             $wallet = $withdrawal->wallet;
+
+            // Confirm dynamic balance inside transaction
+            $balance = $this->calculateDynamicBalance($wallet->id);
+            if ($balance < $withdrawal->amount_cents) {
+                throw new InvalidArgumentException("Insufficient wallet balance at completion time.");
+            }
+
             $walletAccount = $wallet->ledgerAccount;
             $bankAccount = LedgerAccount::where('code', '1110-BANK')->firstOrFail();
 
@@ -210,7 +260,7 @@ class WalletService
             $lines = [
                 new LedgerLineData(
                     accountId: $walletAccount->id,
-                    entryType: 'debit', // Debit reduces liability wallet balance
+                    entryType: 'debit',
                     money: $money,
                     description: "Wallet payout debit.",
                     ledgerableType: Withdrawal::class,
@@ -218,7 +268,7 @@ class WalletService
                 ),
                 new LedgerLineData(
                     accountId: $bankAccount->id,
-                    entryType: 'credit', // Credit reduces asset bank balance
+                    entryType: 'credit',
                     money: $money,
                     description: "Bank payout credit reference: {$payoutReference}",
                     ledgerableType: Withdrawal::class,
@@ -226,33 +276,50 @@ class WalletService
                 )
             ];
 
+            // Enforce Ledger Integrity invariant
             $journal = $this->postingEngine->post($journalData, $lines);
+            if (!$journal) {
+                throw new \RuntimeException("Ledger journal posting failed. Rolling back.");
+            }
 
             $withdrawal->update([
                 'status' => WithdrawalStatus::Completed->value,
                 'payout_reference' => $payoutReference,
             ]);
 
-            $currentBalance = $this->balanceCalculator->calculate($wallet);
+            $nextSequence = $this->getNextSequenceNumber($wallet->id);
+            $txnRef = 'TXN-' . mt_rand(100000, 999999);
+            while (WalletTransaction::where('transaction_reference', $txnRef)->exists()) {
+                $txnRef = 'TXN-' . mt_rand(100000, 999999);
+            }
+
+            $currentBalance = $this->calculateDynamicBalance($wallet->id);
 
             WalletTransaction::create([
                 'id' => (string) Str::uuid(),
+                'organization_id' => $wallet->organization_id,
                 'wallet_id' => $wallet->id,
                 'ledger_journal_id' => $journal->id,
                 'amount_cents' => $withdrawal->amount_cents,
                 'running_balance_snapshot' => $currentBalance,
                 'type' => TransactionType::Withdrawal->value,
                 'status' => TransactionStatus::Completed->value,
+                'posting_status' => PostingStatus::Posted->value,
                 'reference_number' => $payoutReference,
+                'transaction_reference' => $txnRef,
+                'sequence_number' => $nextSequence,
             ]);
 
-            WalletActivity::create([
-                'id' => (string) Str::uuid(),
+            $wallet->update(['balance' => $currentBalance]);
+
+            $eventData = [
+                'withdrawal_id' => $withdrawal->id,
                 'wallet_id' => $wallet->id,
-                'performed_by' => $wallet->holder_id,
-                'action' => 'WithdrawalCompleted',
-                'description' => "Withdrawal of {$withdrawal->amount_cents} cents paid successfully.",
-            ]);
+                'amount_cents' => $withdrawal->amount_cents,
+                'payout_reference' => $payoutReference,
+            ];
+
+            $this->lifecycleService->recordWithdrawalCompleted($wallet, $eventData);
         });
     }
 
@@ -272,13 +339,13 @@ class WalletService
                 'status' => WithdrawalStatus::Rejected->value,
             ]);
 
-            WalletActivity::create([
-                'id' => (string) Str::uuid(),
+            $eventData = [
+                'withdrawal_id' => $withdrawal->id,
                 'wallet_id' => $withdrawal->wallet_id,
-                'performed_by' => $withdrawal->wallet->holder_id,
-                'action' => 'WithdrawalRejected',
-                'description' => "Withdrawal request rejected. Reason: {$reason}",
-            ]);
+                'reason' => $reason,
+            ];
+
+            $this->lifecycleService->recordWithdrawalRejected($withdrawal->wallet, $eventData);
         });
     }
 
@@ -287,12 +354,14 @@ class WalletService
      */
     public function transfer(Wallet $fromWallet, Wallet $toWallet, int $amountCents, string $reference): void
     {
+        $this->ensurePeriodNotLocked();
+
         DB::transaction(function () use ($fromWallet, $toWallet, $amountCents, $reference) {
             if ($fromWallet->currency !== $toWallet->currency) {
                 throw new InvalidArgumentException("Currency mismatch across wallets.");
             }
 
-            $fromBalance = $this->balanceCalculator->calculate($fromWallet);
+            $fromBalance = $this->calculateDynamicBalance($fromWallet->id);
 
             if ($fromBalance < $amountCents) {
                 throw new InvalidArgumentException("Insufficient funds for transfer.");
@@ -314,7 +383,7 @@ class WalletService
             $lines = [
                 new LedgerLineData(
                     accountId: $fromWallet->ledgerAccount->id,
-                    entryType: 'debit', // Debiting sender reduces sender liability
+                    entryType: 'debit',
                     money: $money,
                     description: "Transfer debit payout to {$toWallet->id}",
                     ledgerableType: Wallet::class,
@@ -322,7 +391,7 @@ class WalletService
                 ),
                 new LedgerLineData(
                     accountId: $toWallet->ledgerAccount->id,
-                    entryType: 'credit', // Crediting receiver increases receiver liability
+                    entryType: 'credit',
                     money: $money,
                     description: "Transfer credit deposit from {$fromWallet->id}",
                     ledgerableType: Wallet::class,
@@ -330,33 +399,66 @@ class WalletService
                 )
             ];
 
+            // Enforce Ledger Integrity invariant
             $journal = $this->postingEngine->post($journalData, $lines);
+            if (!$journal) {
+                throw new \RuntimeException("Ledger journal posting failed. Rolling back.");
+            }
 
             // Save snapshots for sender and receiver
-            $fromBalanceSnap = $this->balanceCalculator->calculate($fromWallet);
-            $toBalanceSnap = $this->balanceCalculator->calculate($toWallet);
+            $fromBalanceSnap = $this->calculateDynamicBalance($fromWallet->id);
+            $toBalanceSnap = $this->calculateDynamicBalance($toWallet->id);
+
+            $txnRef1 = 'TXN-' . mt_rand(100000, 999999);
+            while (WalletTransaction::where('transaction_reference', $txnRef1)->exists()) {
+                $txnRef1 = 'TXN-' . mt_rand(100000, 999999);
+            }
+            $txnRef2 = 'TXN-' . mt_rand(100000, 999999);
+            while (WalletTransaction::where('transaction_reference', $txnRef2)->exists()) {
+                $txnRef2 = 'TXN-' . mt_rand(100000, 999999);
+            }
 
             WalletTransaction::create([
                 'id' => (string) Str::uuid(),
+                'organization_id' => $fromWallet->organization_id,
                 'wallet_id' => $fromWallet->id,
                 'ledger_journal_id' => $journal->id,
                 'amount_cents' => $amountCents,
                 'running_balance_snapshot' => $fromBalanceSnap,
                 'type' => TransactionType::Transfer->value,
                 'status' => TransactionStatus::Completed->value,
+                'posting_status' => PostingStatus::Posted->value,
                 'reference_number' => $reference,
+                'transaction_reference' => $txnRef1,
+                'sequence_number' => $this->getNextSequenceNumber($fromWallet->id),
             ]);
 
             WalletTransaction::create([
                 'id' => (string) Str::uuid(),
+                'organization_id' => $toWallet->organization_id,
                 'wallet_id' => $toWallet->id,
                 'ledger_journal_id' => $journal->id,
                 'amount_cents' => $amountCents,
                 'running_balance_snapshot' => $toBalanceSnap,
                 'type' => TransactionType::Transfer->value,
                 'status' => TransactionStatus::Completed->value,
+                'posting_status' => PostingStatus::Posted->value,
                 'reference_number' => $reference,
+                'transaction_reference' => $txnRef2,
+                'sequence_number' => $this->getNextSequenceNumber($toWallet->id),
             ]);
+
+            $fromWallet->update(['balance' => $fromBalanceSnap]);
+            $toWallet->update(['balance' => $toBalanceSnap]);
+
+            $eventData = [
+                'from_wallet_id' => $fromWallet->id,
+                'to_wallet_id' => $toWallet->id,
+                'amount_cents' => $amountCents,
+                'reference' => $reference,
+            ];
+
+            $this->lifecycleService->recordTransfer($fromWallet, $eventData);
         });
     }
 
@@ -365,7 +467,12 @@ class WalletService
      */
     public function creditSettlement(Wallet $wallet, int $amountCents, string $settlementId): void
     {
+        $this->ensurePeriodNotLocked();
+
         DB::transaction(function () use ($wallet, $amountCents, $settlementId) {
+            // Find the provider settlement details to lock and reconcile references
+            $settlement = \App\Modules\Finance\Domain\Entities\ProviderSettlement::findOrFail($settlementId);
+
             $settlementPayable = LedgerAccount::where('code', '2300-SETTLEMENT-PAYABLE')->firstOrFail();
             $walletAccount = $wallet->ledgerAccount;
 
@@ -385,7 +492,7 @@ class WalletService
             $lines = [
                 new LedgerLineData(
                     accountId: $settlementPayable->id,
-                    entryType: 'debit', // Debiting Settlement Payable reduces liability
+                    entryType: 'debit',
                     money: $money,
                     description: "Payout settlement debit from payables.",
                     ledgerableType: Wallet::class,
@@ -393,7 +500,7 @@ class WalletService
                 ),
                 new LedgerLineData(
                     accountId: $walletAccount->id,
-                    entryType: 'credit', // Crediting wallet liability increases partner balance
+                    entryType: 'credit',
                     money: $money,
                     description: "Settlement payout credited to wallet.",
                     ledgerableType: Wallet::class,
@@ -401,28 +508,85 @@ class WalletService
                 )
             ];
 
+            // Enforce Ledger Integrity invariant
             $journal = $this->postingEngine->post($journalData, $lines);
+            if (!$journal) {
+                throw new \RuntimeException("Ledger journal posting failed. Rolling back.");
+            }
 
-            $currentBalance = $this->balanceCalculator->calculate($wallet);
+            $currentBalance = $this->calculateDynamicBalance($wallet->id);
+
+            $txnRef = 'TXN-' . mt_rand(100000, 999999);
+            while (WalletTransaction::where('transaction_reference', $txnRef)->exists()) {
+                $txnRef = 'TXN-' . mt_rand(100000, 999999);
+            }
 
             WalletTransaction::create([
                 'id' => (string) Str::uuid(),
+                'organization_id' => $wallet->organization_id,
                 'wallet_id' => $wallet->id,
                 'ledger_journal_id' => $journal->id,
                 'amount_cents' => $amountCents,
                 'running_balance_snapshot' => $currentBalance,
                 'type' => TransactionType::Settlement->value,
                 'status' => TransactionStatus::Completed->value,
-                'reference_number' => $settlementId,
+                'posting_status' => PostingStatus::Posted->value,
+                'reference_number' => $settlement->settlement_number,
+                'transaction_reference' => $txnRef,
+                'sequence_number' => $this->getNextSequenceNumber($wallet->id),
+                'invoice_id' => $settlement->invoice_id,
+                'settlement_id' => $settlement->id,
             ]);
 
-            WalletActivity::create([
-                'id' => (string) Str::uuid(),
+            $wallet->update(['balance' => $currentBalance]);
+
+            // Reconciled metadata references
+            $eventData = [
                 'wallet_id' => $wallet->id,
-                'performed_by' => $wallet->holder_id,
-                'action' => 'SettlementCredited',
-                'description' => "Settlement {$settlementId} auto-credited.",
-            ]);
+                'amount_cents' => $amountCents,
+                'settlement_id' => $settlementId,
+                'invoice_id' => $settlement->invoice_id,
+                'transaction_reference' => $txnRef,
+            ];
+
+            $this->lifecycleService->recordSettlementCredited($wallet, $eventData);
         });
+    }
+
+    /**
+     * Compute balance authoritative by summing transactions dynamically
+     */
+    public function calculateDynamicBalance(string $walletId): int
+    {
+        $wallet = Wallet::findOrFail($walletId);
+        $accountId = $wallet->ledger_account_id;
+
+        $credits = (int) \App\Platform\Accounting\Journal\LedgerEntry::where('ledger_account_id', $accountId)
+            ->where('entry_type', \App\Platform\Accounting\Journal\EntryType::Credit->value)
+            ->sum('amount_cents');
+
+        $debits = (int) \App\Platform\Accounting\Journal\LedgerEntry::where('ledger_account_id', $accountId)
+            ->where('entry_type', \App\Platform\Accounting\Journal\EntryType::Debit->value)
+            ->sum('amount_cents');
+
+        return $credits - $debits;
+    }
+
+    protected function getNextSequenceNumber(string $walletId): int
+    {
+        return (int) (WalletTransaction::where('wallet_id', $walletId)->max('sequence_number') ?? 0) + 1;
+    }
+
+    protected function ensurePeriodNotLocked(): void
+    {
+        $month = (int) date('m');
+        $year = date('Y');
+        $period = AccountingPeriod::where('fiscal_year', $year)
+            ->where('month', $month)
+            ->first();
+
+        if ($period && $period->status === 'locked') {
+            throw new \RuntimeException("Accounting period is locked.");
+        }
     }
 }

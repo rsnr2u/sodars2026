@@ -4,16 +4,18 @@ declare(strict_types=1);
 
 namespace App\Modules\Providers\Domain\Entities;
 
-use App\Core\Models\BaseModel;
+use App\Core\Models\BaseBusinessModel;
 use App\Modules\Providers\Domain\Enums\ProviderStatus;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Platform\Search\Domain\Contracts\Searchable;
 
-class Provider extends BaseModel
+class Provider extends BaseBusinessModel implements Searchable
 {
     protected $table = 'providers';
 
     protected $fillable = [
+        'organization_id',
         'company_name',
         'registration_number',
         'provider_code',
@@ -81,5 +83,52 @@ class Provider extends BaseModel
     public function activities(): HasMany
     {
         return $this->hasMany(ProviderActivity::class, 'provider_id');
+    }
+
+    public function toSearchDocument(): array
+    {
+        return [
+            'searchable_text' => implode(' ', array_filter([
+                $this->company_name,
+                $this->registration_number,
+                $this->provider_code,
+                $this->contacts->pluck('contact_name')->implode(' '),
+                $this->contacts->pluck('email')->implode(' '),
+                $this->contacts->pluck('phone')->implode(' '),
+                $this->addresses->pluck('address_line1')->implode(' '),
+            ])),
+            'filterable_attributes' => [
+                'status' => $this->status instanceof \BackedEnum ? $this->status->value : $this->status,
+                'organization_id' => $this->organization_id,
+            ],
+            'facet_values' => [
+                'status' => $this->status instanceof \BackedEnum ? $this->status->value : $this->status,
+            ],
+            'sortable_attributes' => [
+                'created_at' => $this->created_at?->toIso8601String(),
+            ],
+            'display_data' => [
+                'name' => $this->company_name,
+                'code' => $this->provider_code,
+                'status' => $this->status instanceof \BackedEnum ? $this->status->value : $this->status,
+            ],
+        ];
+    }
+
+    public static function getSearchIndexName(): string
+    {
+        return 'provider_providers';
+    }
+
+    public static function getSearchFieldMappings(): array
+    {
+        return [
+            'company_name' => 'string',
+        ];
+    }
+
+    public static function getSearchFacetFields(): array
+    {
+        return ['status'];
     }
 }

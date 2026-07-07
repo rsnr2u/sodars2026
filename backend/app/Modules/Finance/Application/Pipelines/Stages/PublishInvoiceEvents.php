@@ -33,7 +33,7 @@ class PublishInvoiceEvents
         $this->outboxService->record(
             aggregateType: 'Invoice',
             aggregateId: $invoice->id,
-            eventName: 'invoice.created.v1',
+            eventName: 'finance.invoice.created.v1',
             data: $eventData,
             eventVersion: 1,
             schemaVersion: '1.0.0'

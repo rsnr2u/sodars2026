@@ -34,6 +34,9 @@ class ModuleRegistry
         \App\Platform\Integrations\Module::class,
         \App\Platform\Identity\Module::class,
         \App\Platform\Audit\Module::class,
+        \App\Modules\Transport\Module::class,
+        \App\Modules\IoT\Module::class,
+        \App\Modules\Operations\Module::class,
     ];
 
     /**

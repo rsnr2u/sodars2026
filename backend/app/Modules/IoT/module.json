@@ -1,0 +1,42 @@
+{
+  "name": "IoT",
+  "version": "1.0",
+  "enabled": true,
+  "providers": [
+    "App\\Modules\\IoT\\Infrastructure\\Providers\\IoTServiceProvider"
+  ],
+  "routes": [
+    "App\\Modules\\IoT\\Presentation\\Routes\\v1\\api.php"
+  ],
+  "events_published": [
+    "iot.device.registered",
+    "iot.device.activated",
+    "iot.device.suspended",
+    "iot.assignment.assigned",
+    "iot.assignment.released",
+    "iot.telemetry.heartbeat",
+    "iot.telemetry.processed",
+    "iot.device.online",
+    "iot.device.offline",
+    "iot.command.queued",
+    "iot.command.dispatched",
+    "iot.command.acknowledged",
+    "iot.command.completed",
+    "iot.command.failed",
+    "iot.firmware.published",
+    "iot.firmware.installed",
+    "iot.firmware.rollback",
+    "iot.alert.raised",
+    "iot.alert.resolved"
+  ],
+  "events_consumed": [],
+  "permissions": [
+    "iot.devices.view",
+    "iot.devices.register",
+    "iot.devices.assign",
+    "iot.commands.send",
+    "iot.firmware.publish"
+  ],
+  "dependencies": ["Transport", "Inventory"],
+  "adr_references": []
+}

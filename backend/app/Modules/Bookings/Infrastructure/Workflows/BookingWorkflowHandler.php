@@ -7,95 +7,78 @@ namespace App\Modules\Bookings\Infrastructure\Workflows;
 use App\Modules\Bookings\Domain\Entities\Booking;
 use App\Modules\Bookings\Domain\Enums\BookingStatus;
 use App\Modules\Bookings\Domain\Services\BookingLifecycleService;
-use App\Platform\Workflows\Domain\Contracts\WorkflowTransitionHandler;
-use App\Platform\Workflows\Domain\Entities\WorkflowInstance;
-use App\Platform\Workflows\Domain\ValueObjects\WorkflowTransitionResult;
+use App\Platform\Workflows\Domain\Contracts\WorkflowHandler;
+use App\Platform\Workflows\Domain\ValueObjects\WorkflowContext;
+use App\Platform\Workflows\Domain\ValueObjects\WorkflowResult;
 
-/**
- * Workflow transition handler for Bookings.
- *
- * Delegates to BookingLifecycleService::transitionFromWorkflow() so that the
- * Booking aggregate remains the single authority for state changes. The workflow
- * engine replaces the state-machine validation, but all domain side effects
- * (history, outbox, events, activity audit, inventory) still execute.
- */
-class BookingWorkflowHandler implements WorkflowTransitionHandler
+class BookingWorkflowHandler implements WorkflowHandler
 {
     public function __construct(
         protected BookingLifecycleService $lifecycleService
     ) {}
 
-    public function approve(WorkflowInstance $instance): WorkflowTransitionResult
+    public function entityClass(): string
     {
-        $booking = Booking::findOrFail($instance->entity_id);
-        $comment = $this->extractLastComment($instance, 'approve_step');
+        return Booking::class;
+    }
+
+    public function workflowKey(): string
+    {
+        return 'booking.approval';
+    }
+
+    public function availableTransitions(object $entity): array
+    {
+        return ['approve', 'reject', 'request_changes'];
+    }
+
+    public function transition(
+        object $entity,
+        string $transition,
+        WorkflowContext $context
+    ): WorkflowResult {
+        $booking = $entity;
+        $stateValue = $context->metadata['target_state'] ?? null;
+        $targetStatus = $stateValue ? strtolower($stateValue) : match ($transition) {
+            'approve' => BookingStatus::Approved->value,
+            'reject' => BookingStatus::Rejected->value,
+            'request_changes' => BookingStatus::Draft->value,
+            default => throw new \InvalidArgumentException("Invalid workflow transition: {$transition}"),
+        };
 
         $this->lifecycleService->transitionFromWorkflow(
             $booking,
-            BookingStatus::Approved->value,
-            $comment
+            $targetStatus,
+            $context->comments
         );
 
-        return WorkflowTransitionResult::create(
-            true,
-            BookingStatus::Approved->value,
-            [],
-            [],
-            ['booking_code' => $booking->booking_code]
+        return WorkflowResult::create(
+            success: true,
+            previousState: $booking->status->value ?? $booking->status,
+            newState: $targetStatus,
+            metadata: ['booking_code' => $booking->booking_code]
         );
     }
 
-    public function reject(WorkflowInstance $instance): WorkflowTransitionResult
-    {
-        $booking = Booking::findOrFail($instance->entity_id);
-        $comment = $this->extractLastComment($instance, 'reject_step');
+    public function compensate(
+        object $entity,
+        \App\Platform\Workflows\Domain\Entities\WorkflowHistory $history,
+        WorkflowContext $context
+    ): WorkflowResult {
+        $booking = $entity;
+        $previousState = $booking->status->value ?? $booking->status;
+        $targetStatus = $history->from_state ?? BookingStatus::Draft->value;
 
         $this->lifecycleService->transitionFromWorkflow(
             $booking,
-            BookingStatus::Rejected->value,
-            $comment
+            $targetStatus,
+            'Saga rollback compensation executed.'
         );
 
-        return WorkflowTransitionResult::create(
-            true,
-            BookingStatus::Rejected->value,
-            [],
-            [],
-            ['booking_code' => $booking->booking_code]
+        return WorkflowResult::create(
+            success: true,
+            previousState: $previousState,
+            newState: $targetStatus
         );
-    }
-
-    public function requestChanges(WorkflowInstance $instance): WorkflowTransitionResult
-    {
-        $booking = Booking::findOrFail($instance->entity_id);
-        $comment = $this->extractLastComment($instance, 'request_changes');
-
-        $this->lifecycleService->transitionFromWorkflow(
-            $booking,
-            BookingStatus::Draft->value,
-            $comment
-        );
-
-        return WorkflowTransitionResult::create(
-            true,
-            BookingStatus::Draft->value,
-            [],
-            [],
-            ['booking_code' => $booking->booking_code]
-        );
-    }
-
-    /**
-     * Extract the most recent workflow history comment for a given action.
-     */
-    protected function extractLastComment(WorkflowInstance $instance, string $action): ?string
-    {
-        return $instance->histories()
-            ->where('action', $action)
-            ->orderBy('created_at', 'desc')
-            ->first()
-            ?->comments;
     }
 }
-
-

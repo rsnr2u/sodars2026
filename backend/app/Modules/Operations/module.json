@@ -1,0 +1,46 @@
+{
+  "name": "Operations",
+  "version": "1.0",
+  "enabled": true,
+  "providers": [
+    "App\\Modules\\Operations\\Infrastructure\\Providers\\OperationsServiceProvider"
+  ],
+  "routes": [
+    "App\\Modules\\Operations\\Presentation\\Routes\\v1\\api.php"
+  ],
+  "events_published": [
+    "operations.schedule.created",
+    "operations.schedule.validated",
+    "operations.schedule.optimized",
+    "operations.schedule.assigned",
+    "operations.schedule.approved",
+    "operations.schedule.dispatched",
+    "operations.schedule.started",
+    "operations.schedule.completed",
+    "operations.schedule.cancelled",
+    "operations.schedule.delayed",
+    "operations.schedule.suspended",
+    "operations.schedule.failed",
+    "operations.resource.assigned",
+    "operations.resource.released",
+    "operations.conflict.detected",
+    "operations.conflict.resolved",
+    "operations.shift.started",
+    "operations.shift.completed",
+    "operations.calendar.updated"
+  ],
+  "events_consumed": [
+    "iot.telemetry.processed",
+    "transport.route.dispatched",
+    "transport.route.completed"
+  ],
+  "permissions": [
+    "operations.schedules.view",
+    "operations.schedules.create",
+    "operations.schedules.manage",
+    "operations.resources.manage",
+    "operations.shifts.manage"
+  ],
+  "dependencies": ["Transport", "IoT"],
+  "adr_references": []
+}

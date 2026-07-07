@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 namespace App\Platform\Accounting\Journal;
 
-use App\Core\Models\BaseModel;
+use App\Core\Models\BaseBusinessModel;
 use App\Platform\Accounting\ChartOfAccounts\AccountingPeriod;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class LedgerJournal extends BaseModel
+class LedgerJournal extends BaseBusinessModel
 {
     protected $table = 'ledger_journals';
 
     protected $fillable = [
+        'organization_id',
         'id',
         'reference_number',
         'narration',

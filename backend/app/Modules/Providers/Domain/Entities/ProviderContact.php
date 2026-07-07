@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace App\Modules\Providers\Domain\Entities;
 
-use App\Core\Models\BaseModel;
+use App\Core\Models\BaseBusinessModel;
 use App\Modules\Providers\Domain\Enums\ContactType;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ProviderContact extends BaseModel
+class ProviderContact extends BaseBusinessModel
 {
     protected $table = 'provider_contacts';
 
     protected $fillable = [
+        'organization_id',
         'provider_id',
         'contact_name',
         'email',

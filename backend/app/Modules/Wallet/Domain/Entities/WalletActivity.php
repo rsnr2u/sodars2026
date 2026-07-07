@@ -6,11 +6,13 @@ namespace App\Modules\Wallet\Domain\Entities;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Core\Traits\HasUuid;
+use App\Platform\Identity\Infrastructure\Traits\BelongsToOrganization;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class WalletActivity extends Model
 {
     use HasUuid;
+    use BelongsToOrganization;
 
     public $incrementing = false;
     protected $keyType = 'string';
@@ -19,6 +21,7 @@ class WalletActivity extends Model
 
     protected $fillable = [
         'id',
+        'organization_id',
         'wallet_id',
         'performed_by',
         'action',

@@ -36,5 +36,13 @@ class FinanceServiceProvider extends ServiceProvider
 
         // Dynamic registration of Booking event listeners
         Event::subscribe(BookingEventListener::class);
+
+        if ($this->app->bound(\App\Platform\Workflows\Infrastructure\Registry\WorkflowRegistry::class)) {
+            $registry = $this->app->make(\App\Platform\Workflows\Infrastructure\Registry\WorkflowRegistry::class);
+            $registry->register(
+                \App\Modules\Finance\Domain\Entities\Invoice::class,
+                \App\Modules\Finance\Infrastructure\Workflows\InvoiceWorkflowHandler::class
+            );
+        }
     }
 }

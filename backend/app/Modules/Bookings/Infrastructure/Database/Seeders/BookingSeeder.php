@@ -10,7 +10,7 @@ use App\Modules\Bookings\Domain\Entities\Booking;
 use App\Modules\Bookings\Domain\Entities\BookingItem;
 use App\Modules\Bookings\Domain\Entities\BookingStatusHistory;
 use App\Modules\Bookings\Domain\Entities\BookingActivity;
-use App\Modules\Bookings\Domain\Entities\Payment;
+use App\Modules\Finance\Domain\Entities\Payment;
 use App\Modules\Bookings\Domain\Enums\BookingStatus;
 use App\Modules\Bookings\Domain\Enums\PaymentMethod;
 use App\Modules\Bookings\Domain\Enums\PaymentStatus;

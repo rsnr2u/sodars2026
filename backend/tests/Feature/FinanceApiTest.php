@@ -7,7 +7,7 @@ namespace Tests\Feature;
 use App\Modules\Branches\Domain\Entities\Branch;
 use App\Modules\Bookings\Domain\Entities\Booking;
 use App\Modules\Bookings\Domain\Entities\BookingItem;
-use App\Modules\Bookings\Domain\Entities\Payment;
+use App\Modules\Finance\Domain\Entities\Payment;
 use App\Modules\Finance\Domain\Entities\Invoice;
 use App\Modules\Finance\Domain\Entities\ProviderSettlement;
 use App\Modules\Finance\Domain\Entities\RevenueRecognitionSchedule;

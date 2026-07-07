@@ -29,7 +29,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->uuid('parent_account_id')->nullable();
             $table->string('name', 100);
-            $table->string('code', 50)->unique();
+            $table->string('code', 50);
             $table->string('type', 20); // asset, liability, equity, revenue, expense
             $table->string('normal_balance', 10); // debit, credit
             $table->boolean('is_control_account')->default(false);

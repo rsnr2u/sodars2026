@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Bookings\Infrastructure\Repositories;
 
-use App\Modules\Bookings\Domain\Entities\Payment;
+use App\Modules\Finance\Domain\Entities\Payment;
 use App\Modules\Bookings\Domain\Repositories\BookingPaymentRepositoryInterface;
 
 class BookingPaymentRepository implements BookingPaymentRepositoryInterface

@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace App\Modules\Providers\Domain\Entities;
 
-use App\Core\Models\BaseModel;
+use App\Core\Models\BaseBusinessModel;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ProviderBankAccount extends BaseModel
+class ProviderBankAccount extends BaseBusinessModel
 {
     protected $table = 'provider_bank_accounts';
 
     protected $fillable = [
+        'organization_id',
         'provider_id',
         'bank_name',
         'account_holder',

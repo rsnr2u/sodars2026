@@ -1,0 +1,14 @@
+{
+  "name": "Scheduler",
+  "version": "1.0",
+  "enabled": true,
+  "providers": [
+    "App\\Platform\\Scheduler\\Infrastructure\\Providers\\SchedulerServiceProvider"
+  ],
+  "routes": [],
+  "events_published": [],
+  "events_consumed": [],
+  "permissions": [],
+  "dependencies": [],
+  "adr_references": []
+}

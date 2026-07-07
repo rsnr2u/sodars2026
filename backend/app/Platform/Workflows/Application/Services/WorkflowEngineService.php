@@ -5,28 +5,33 @@ declare(strict_types=1);
 namespace App\Platform\Workflows\Application\Services;
 
 use App\Models\User;
-use App\Platform\Workflows\Domain\Entities\WorkflowDefinition;
-use App\Platform\Workflows\Domain\Entities\WorkflowDefinitionStep;
+use App\Platform\Workflows\Domain\Entities\WorkflowDefinitionVersion;
 use App\Platform\Workflows\Domain\Entities\WorkflowInstance;
 use App\Platform\Workflows\Domain\Entities\WorkflowTask;
+use App\Platform\Workflows\Domain\Entities\WorkflowTaskAssignment;
 use App\Platform\Workflows\Domain\Entities\WorkflowHistory;
+use App\Platform\Workflows\Domain\Entities\WorkflowVariable;
+use App\Platform\Workflows\Domain\Entities\WorkflowExecutionToken;
 use App\Platform\Workflows\Domain\Enums\WorkflowStatus;
 use App\Platform\Workflows\Domain\Enums\TaskStatus;
-use App\Platform\Workflows\Domain\Enums\ApprovalMode;
+use App\Platform\Workflows\Domain\ValueObjects\WorkflowContext;
 use App\Platform\Workflows\Domain\Events\WorkflowStarted;
 use App\Platform\Workflows\Domain\Events\WorkflowTaskAssigned;
-use App\Platform\Workflows\Domain\Events\WorkflowTaskCompleted;
+use App\Platform\Workflows\Domain\Events\WorkflowTransitioned;
 use App\Platform\Workflows\Domain\Events\WorkflowCompleted;
-use App\Platform\Workflows\Domain\Events\WorkflowCancelled;
+use App\Platform\Workflows\Domain\Services\RuleEngine;
 use App\Platform\Workflows\Infrastructure\Registry\WorkflowRegistry;
 use Illuminate\Support\Facades\DB;
+use App\Platform\Scheduler\Application\Services\SchedulerService;
 use Illuminate\Support\Str;
 use RuntimeException;
 
 class WorkflowEngineService
 {
     public function __construct(
-        protected WorkflowRegistry $registry
+        protected WorkflowRegistry $registry,
+        protected RuleEngine $ruleEngine,
+        protected SchedulerService $scheduler
     ) {}
 
     /**
@@ -40,29 +45,49 @@ class WorkflowEngineService
         ?string $userId = null
     ): WorkflowInstance {
         return DB::transaction(function () use ($definitionKey, $entityType, $entityId, $context, $userId) {
-            $definition = WorkflowDefinition::where('key', $definitionKey)
-                ->where('is_active', true)
-                ->orderBy('version', 'desc')
-                ->firstOrFail();
+            $version = WorkflowDefinitionVersion::whereHas('definition', function ($q) use ($definitionKey) {
+                $q->where('key', $definitionKey);
+            })
+            ->where('is_active', true)
+            ->firstOrFail();
+
+            $dsl = $version->dsl_schema;
+            $initialState = $dsl['initial_state'] ?? 'Draft';
 
             // Create workflow instance
             $instance = WorkflowInstance::create([
                 'id' => (string) Str::uuid(),
-                'definition_id' => $definition->id,
+                'definition_version_id' => $version->id,
                 'entity_id' => $entityId,
                 'entity_type' => $entityType,
+                'organization_id' => $context['organization_id'] ?? null,
                 'status' => WorkflowStatus::Active,
-                'current_step_index' => 0,
+                'current_state' => $initialState,
+                'dsl_snapshot' => $dsl,
                 'context_snapshot' => $context,
                 'started_at' => now(),
             ]);
+
+            // Save variables
+            foreach ($context as $key => $val) {
+                if (is_scalar($val)) {
+                    $type = gettype($val);
+                    WorkflowVariable::create([
+                        'id' => (string) Str::uuid(),
+                        'instance_id' => $instance->id,
+                        'name' => $key,
+                        'value' => (string) $val,
+                        'type' => $type,
+                    ]);
+                }
+            }
 
             // Create initial history log
             WorkflowHistory::create([
                 'id' => (string) Str::uuid(),
                 'instance_id' => $instance->id,
-                'from_status' => null,
-                'to_status' => 'active',
+                'from_state' => null,
+                'to_state' => $initialState,
                 'action' => 'start',
                 'comments' => 'Workflow process started.',
                 'actioned_by' => $userId,
@@ -71,7 +96,7 @@ class WorkflowEngineService
 
             event(new WorkflowStarted($instance->id, $context, $userId));
 
-            // Move to first step
+            // Move to first step (index 0)
             $this->activateStep($instance, 0, $userId);
 
             return $instance;
@@ -79,7 +104,7 @@ class WorkflowEngineService
     }
 
     /**
-     * Action a specific workflow task (approve, reject, delegate, request_changes).
+     * Action a specific workflow task (approve, reject, request_changes).
      */
     public function actionTask(
         string $taskId,
@@ -99,38 +124,77 @@ class WorkflowEngineService
                 throw new RuntimeException("Task is already in status: {$task->status->value}");
             }
 
-            $oldStatus = $instance->status->value;
+            // 1. Cancel any active SLA timeouts scheduled for this task
+            $this->scheduler->cancel(WorkflowTask::class, $task->id);
 
-            if ($action === 'approve') {
-                $task->update([
-                    'status' => TaskStatus::Approved,
-                    'actioned_by' => $userId,
-                    'actioned_at' => now(),
-                    'comments' => $comments,
+            // 2. Update task status
+            $newStatus = match ($action) {
+                'approve' => TaskStatus::Approved,
+                'reject' => TaskStatus::Rejected,
+                'request_changes' => TaskStatus::Pending, // Resets to pending for changes
+                default => TaskStatus::Approved,
+            };
+
+            $task->update([
+                'status' => $newStatus,
+                'completed_at' => now(),
+            ]);
+
+            // Save history log
+            WorkflowHistory::create([
+                'id' => (string) Str::uuid(),
+                'instance_id' => $instance->id,
+                'task_id' => $task->id,
+                'from_state' => $instance->current_state,
+                'to_state' => $instance->current_state,
+                'action' => $action . '_step',
+                'comments' => "Step actioned. Task: {$task->step_name}. " . ($comments ?? ''),
+                'actioned_by' => $userId,
+                'created_at' => now(),
+            ]);
+
+            // Check parallel gateway execution tokens
+            $token = WorkflowExecutionToken::where('workflow_instance_id', $instance->id)
+                ->where('gateway_id', $task->step_name)
+                ->where('status', 'active')
+                ->first();
+
+            if ($token) {
+                $token->update([
+                    'status' => 'completed',
+                    'completed_at' => now(),
                 ]);
+            }
 
-                event(new WorkflowTaskCompleted($instance->id, ['task_id' => $taskId, 'action' => 'approve'], $userId));
+            // 3. Evaluate if current step is fully complete
+            $dsl = $instance->dsl_snapshot;
+            $currentStepIndex = $instance->current_step_index ?? 0;
+            $steps = $dsl['steps'] ?? [];
+            $step = $steps[$currentStepIndex] ?? null;
 
-                // Log history
-                WorkflowHistory::create([
-                    'id' => (string) Str::uuid(),
-                    'instance_id' => $instance->id,
-                    'from_status' => 'active',
-                    'to_status' => 'active',
-                    'action' => 'approve_step',
-                    'comments' => "Step approved. Task: {$task->step->name}. " . ($comments ?? ''),
-                    'actioned_by' => $userId,
-                    'created_at' => now(),
-                ]);
+            if (!$step) {
+                throw new RuntimeException("Workflow step configuration missing for index: {$currentStepIndex}");
+            }
 
-                // Check if step is fully complete
-                $step = $task->step;
+            // Check if there are active execution tokens left for this gateway
+            $activeTokensCount = WorkflowExecutionToken::where('workflow_instance_id', $instance->id)
+                ->where('status', 'active')
+                ->count();
+
+            $isStepComplete = false;
+
+            if ($action === 'reject') {
+                $isStepComplete = true; // Rejecting automatically terminates
+            } elseif ($activeTokensCount > 0) {
+                // Parallel join is still waiting for other branches
                 $isStepComplete = false;
+            } else {
+                $approvalMode = $step['approval_mode'] ?? 'any';
 
-                if ($step->approval_mode === ApprovalMode::All) {
-                    // All tasks for this step must be approved
+                if ($approvalMode === 'all') {
+                    // Check if any other pending tasks for this step exist
                     $pendingCount = WorkflowTask::where('instance_id', $instance->id)
-                        ->where('step_id', $step->id)
+                        ->where('step_name', $step['name'])
                         ->whereIn('status', [TaskStatus::Pending, TaskStatus::Assigned])
                         ->count();
 
@@ -138,41 +202,130 @@ class WorkflowEngineService
                         $isStepComplete = true;
                     }
                 } else {
-                    // ANY approval completes the step
+                    // ANY mode: one approval completes the step
                     $isStepComplete = true;
                     // Cancel other pending tasks for this step
                     WorkflowTask::where('instance_id', $instance->id)
-                        ->where('step_id', $step->id)
+                        ->where('step_name', $step['name'])
                         ->whereIn('status', [TaskStatus::Pending, TaskStatus::Assigned])
                         ->update(['status' => TaskStatus::Cancelled]);
                 }
+            }
 
-                if ($isStepComplete) {
-                    $nextStepIndex = $instance->current_step_index + 1;
-                    $nextStep = WorkflowDefinitionStep::where('definition_id', $instance->definition_id)
-                        ->where('order', $nextStepIndex + 1) // order is 1-indexed, step index is 0-indexed
-                        ->first();
+            if ($isStepComplete) {
+                // Check Guard Expressions
+                $variables = $instance->variables()->get()->pluck('value', 'name')->toArray();
+                if (isset($step['guard']['expression'])) {
+                    $expr = $step['guard']['expression'];
+                    if (!$this->ruleEngine->evaluate($expr, $variables)) {
+                        throw new RuntimeException("Workflow transition blocked by expression guard: {$expr}");
+                    }
+                }
+
+                // 4. Resolve target state transition
+                $transitions = $dsl['transitions'] ?? [];
+                $transitionConfig = null;
+
+                foreach ($transitions as $t) {
+                    if ($t['name'] === $action && $t['from'] === $instance->current_state) {
+                        $transitionConfig = $t;
+                        break;
+                    }
+                }
+
+                if (!$transitionConfig) {
+                    // Fallback default mapping
+                    $targetState = match ($action) {
+                        'approve' => 'Approved',
+                        'reject' => 'Rejected',
+                        'request_changes' => 'Draft',
+                        default => $instance->current_state,
+                    };
+                } else {
+                    $targetState = $transitionConfig['to'];
+                }
+
+                // 5. Delegate to the domain transition handler
+                $handler = $this->registry->resolve($instance->entity_type);
+                $entity = $instance->entity_type::findOrFail($instance->entity_id);
+
+                $context = new WorkflowContext(
+                    actorId: $userId,
+                    organizationId: $instance->organization_id,
+                    comments: $comments,
+                    metadata: array_merge($instance->context_snapshot ?? [], [
+                        'target_state' => $targetState
+                    ])
+                );
+
+                if ($action === 'reject') {
+                    // Execute the reject transition on the aggregate
+                    $handler->transition($entity, $action, $context);
+
+                    // 6. Saga compensation rollback triggered on rejection (only roll back approved tasks)
+                    $histories = $instance->histories()
+                        ->whereNotNull('task_id')
+                        ->where('action', 'like', 'approve%')
+                        ->orderBy('created_at', 'desc')
+                        ->get();
+
+                    foreach ($histories as $h) {
+                        $handler->compensate($entity, $h, $context);
+                    }
+
+                    $previousState = $instance->current_state;
+                    $instance->update([
+                        'current_state' => $targetState,
+                        'status' => WorkflowStatus::Terminated,
+                        'completed_at' => now(),
+                    ]);
+
+                    WorkflowHistory::create([
+                        'id' => (string) Str::uuid(),
+                        'instance_id' => $instance->id,
+                        'from_state' => $previousState,
+                        'to_state' => $targetState,
+                        'action' => 'terminate',
+                        'comments' => "Workflow rejected and compensated at step: {$step['name']}.",
+                        'actioned_by' => $userId,
+                        'created_at' => now(),
+                    ]);
+
+                    event(new WorkflowCompleted($instance->id, [], $userId));
+                } else {
+                    // Approve success path
+                    $result = $handler->transition($entity, $action, $context);
+
+                    if (!$result->success) {
+                        throw new RuntimeException("Domain transition handler failed to execute workflow action: {$action}");
+                    }
+
+                    $previousState = $instance->current_state;
+                    $instance->update(['current_state' => $targetState]);
+
+                    event(new WorkflowTransitioned($instance->id, $previousState, $targetState, $userId));
+
+                    // Check next step
+                    $nextStepIndex = $currentStepIndex + 1;
+                    $nextStep = $steps[$nextStepIndex] ?? null;
 
                     if ($nextStep) {
                         $instance->update(['current_step_index' => $nextStepIndex]);
                         $this->activateStep($instance, $nextStepIndex, $userId);
                     } else {
-                        // Workflow complete - execute approve callback
+                        // All steps completed successfully
                         $instance->update([
                             'status' => WorkflowStatus::Completed,
                             'completed_at' => now(),
                         ]);
 
-                        $handler = $this->registry->resolve($instance->entity_type);
-                        $result = $handler->approve($instance);
-
                         WorkflowHistory::create([
                             'id' => (string) Str::uuid(),
                             'instance_id' => $instance->id,
-                            'from_status' => 'active',
-                            'to_status' => 'completed',
+                            'from_state' => $previousState,
+                            'to_state' => $targetState,
                             'action' => 'complete',
-                            'comments' => "Workflow fully approved and completed. Target status: {$result->newStatus}",
+                            'comments' => "Workflow fully completed. Target state reached: {$targetState}.",
                             'actioned_by' => $userId,
                             'created_at' => now(),
                         ]);
@@ -180,60 +333,6 @@ class WorkflowEngineService
                         event(new WorkflowCompleted($instance->id, $result->metadata, $userId));
                     }
                 }
-            } elseif ($action === 'reject') {
-                $task->update([
-                    'status' => TaskStatus::Rejected,
-                    'actioned_by' => $userId,
-                    'actioned_at' => now(),
-                    'comments' => $comments,
-                ]);
-
-                // Cancel all other tasks for this instance
-                WorkflowTask::where('instance_id', $instance->id)
-                    ->whereIn('status', [TaskStatus::Pending, TaskStatus::Assigned])
-                    ->update(['status' => TaskStatus::Cancelled]);
-
-                $instance->update([
-                    'status' => WorkflowStatus::Terminated,
-                    'completed_at' => now(),
-                ]);
-
-                $handler = $this->registry->resolve($instance->entity_type);
-                $result = $handler->reject($instance);
-
-                WorkflowHistory::create([
-                    'id' => (string) Str::uuid(),
-                    'instance_id' => $instance->id,
-                    'from_status' => 'active',
-                    'to_status' => 'terminated',
-                    'action' => 'reject_step',
-                    'comments' => "Workflow rejected at step: {$task->step->name}. " . ($comments ?? ''),
-                    'actioned_by' => $userId,
-                    'created_at' => now(),
-                ]);
-
-                event(new WorkflowCancelled($instance->id, $result->metadata, $userId));
-            } elseif ($action === 'request_changes') {
-                $task->update([
-                    'status' => TaskStatus::Pending,
-                    'comments' => $comments,
-                ]);
-
-                $handler = $this->registry->resolve($instance->entity_type);
-                $result = $handler->requestChanges($instance);
-
-                WorkflowHistory::create([
-                    'id' => (string) Str::uuid(),
-                    'instance_id' => $instance->id,
-                    'from_status' => 'active',
-                    'to_status' => 'active',
-                    'action' => 'request_changes',
-                    'comments' => "Changes requested: " . ($comments ?? ''),
-                    'actioned_by' => $userId,
-                    'created_at' => now(),
-                ]);
-
-                event(new WorkflowTaskCompleted($instance->id, ['task_id' => $taskId, 'action' => 'request_changes'], $userId));
             }
         });
     }
@@ -243,67 +342,139 @@ class WorkflowEngineService
      */
     protected function activateStep(WorkflowInstance $instance, int $stepIndex, ?string $userId = null): void
     {
-        $step = WorkflowDefinitionStep::where('definition_id', $instance->definition_id)
-            ->where('order', $stepIndex + 1)
-            ->firstOrFail();
+        $dsl = $instance->dsl_snapshot;
+        $steps = $dsl['steps'] ?? [];
+        $step = $steps[$stepIndex] ?? null;
 
-        $dueAt = $step->sla_hours ? now()->addHours($step->sla_hours) : null;
+        if (!$step) {
+            return;
+        }
 
-        if ($step->approval_mode === ApprovalMode::All) {
-            // Find all users of role
-            $users = User::whereHas('roles', function ($q) use ($step) {
-                $q->where('name', $step->role);
-            })->get();
+        // Support Parallel Gateways splits
+        if (isset($step['type']) && $step['type'] === 'parallel_gateway') {
+            $branches = $step['branches'] ?? [];
+            foreach ($branches as $branch) {
+                // Create parallel execution token
+                WorkflowExecutionToken::create([
+                    'id' => (string) Str::uuid(),
+                    'workflow_instance_id' => $instance->id,
+                    'gateway_id' => $step['name'],
+                    'branch_name' => $branch['name'],
+                    'status' => 'active',
+                    'created_at' => now(),
+                ]);
 
-            if ($users->isEmpty()) {
-                // Fallback to create single role-based task if no specific users assigned to role yet
+                // Spawn task for each parallel branch
+                $dueAt = isset($branch['sla_hours']) ? now()->addHours((int) $branch['sla_hours']) : null;
                 $task = WorkflowTask::create([
                     'id' => (string) Str::uuid(),
                     'instance_id' => $instance->id,
-                    'step_id' => $step->id,
+                    'step_name' => $step['name'],
                     'status' => TaskStatus::Pending,
-                    'assigned_role' => $step->role,
                     'due_at' => $dueAt,
                 ]);
 
-                event(new WorkflowTaskAssigned($instance->id, ['task_id' => $task->id, 'role' => $step->role], $userId));
-            } else {
-                foreach ($users as $user) {
-                    $task = WorkflowTask::create([
-                        'id' => (string) Str::uuid(),
-                        'instance_id' => $instance->id,
-                        'step_id' => $step->id,
-                        'status' => TaskStatus::Assigned,
-                        'assigned_role' => $step->role,
-                        'assigned_user_id' => $user->id,
-                        'due_at' => $dueAt,
-                    ]);
+                WorkflowTaskAssignment::create([
+                    'id' => (string) Str::uuid(),
+                    'task_id' => $task->id,
+                    'assignment_type' => 'role',
+                    'assignment_value' => $branch['role'] ?? 'admin',
+                    'assigned_at' => now(),
+                ]);
 
-                    event(new WorkflowTaskAssigned($instance->id, ['task_id' => $task->id, 'user_id' => $user->id], $userId));
+                // Register timeout events
+                if (isset($branch['sla_hours'])) {
+                    $this->scheduler->schedule(
+                        category: 'workflow',
+                        jobType: 'timeout',
+                        aggregateType: WorkflowTask::class,
+                        aggregateId: $task->id,
+                        executeAt: now()->addHours((int) $branch['sla_hours']),
+                        payload: [
+                            'task_id' => $task->id,
+                            'action' => $branch['timeout_action'] ?? 'reject',
+                            'comments' => 'Auto-processed by parallel SLA timeout.',
+                        ]
+                    );
+                }
+            }
+            return;
+        }
+
+        // Standard sequential step task spawning
+        $dueAt = isset($step['sla_hours']) ? now()->addHours((int) $step['sla_hours']) : null;
+
+        $task = WorkflowTask::create([
+            'id' => (string) Str::uuid(),
+            'instance_id' => $instance->id,
+            'step_name' => $step['name'],
+            'status' => TaskStatus::Pending,
+            'due_at' => $dueAt,
+        ]);
+
+        $role = $step['role'] ?? 'admin';
+        $approvalMode = $step['approval_mode'] ?? 'any';
+
+        if ($approvalMode === 'all') {
+            $users = User::whereHas('roles', function ($q) use ($role) {
+                $q->where('name', $role);
+            })->get();
+
+            if ($users->isEmpty()) {
+                WorkflowTaskAssignment::create([
+                    'id' => (string) Str::uuid(),
+                    'task_id' => $task->id,
+                    'assignment_type' => 'role',
+                    'assignment_value' => $role,
+                    'assigned_at' => now(),
+                ]);
+            } else {
+                $task->update(['status' => TaskStatus::Assigned]);
+
+                foreach ($users as $user) {
+                    WorkflowTaskAssignment::create([
+                        'id' => (string) Str::uuid(),
+                        'task_id' => $task->id,
+                        'assignment_type' => 'user',
+                        'assignment_value' => $user->id,
+                        'assigned_at' => now(),
+                    ]);
                 }
             }
         } else {
-            // ANY: Create single role task
-            $task = WorkflowTask::create([
+            WorkflowTaskAssignment::create([
                 'id' => (string) Str::uuid(),
-                'instance_id' => $instance->id,
-                'step_id' => $step->id,
-                'status' => TaskStatus::Pending,
-                'assigned_role' => $step->role,
-                'due_at' => $dueAt,
+                'task_id' => $task->id,
+                'assignment_type' => 'role',
+                'assignment_value' => $role,
+                'assigned_at' => now(),
             ]);
+        }
 
-            event(new WorkflowTaskAssigned($instance->id, ['task_id' => $task->id, 'role' => $step->role], $userId));
+        // Register standard timeout events
+        if (isset($step['sla_hours'])) {
+            $this->scheduler->schedule(
+                category: 'workflow',
+                jobType: 'timeout',
+                aggregateType: WorkflowTask::class,
+                aggregateId: $task->id,
+                executeAt: now()->addHours((int) $step['sla_hours']),
+                payload: [
+                    'task_id' => $task->id,
+                    'action' => $step['timeout_action'] ?? 'reject',
+                    'comments' => 'Auto-processed by sequential SLA timeout.',
+                ]
+            );
         }
     }
 
     /**
-     * Check SLA deadlines and escalate overdue tasks.
+     * Escalate overdue tasks.
      */
     public function escalateOverdueTasks(): void
     {
         DB::transaction(function () {
-            $overdueTasks = WorkflowTask::whereIn('status', [TaskStatus::Pending, TaskStatus::Assigned])
+            $overdueTasks = WorkflowTask::where('status', TaskStatus::Pending)
                 ->whereNotNull('due_at')
                 ->where('due_at', '<=', now())
                 ->get();
@@ -311,22 +482,27 @@ class WorkflowEngineService
             foreach ($overdueTasks as $task) {
                 $task->update([
                     'status' => TaskStatus::Escalated,
-                    'escalated_to_role' => 'super_admin',
-                    'escalated_at' => now(),
+                ]);
+
+                WorkflowTaskAssignment::create([
+                    'id' => (string) Str::uuid(),
+                    'task_id' => $task->id,
+                    'assignment_type' => 'role',
+                    'assignment_value' => 'super_admin',
+                    'assigned_at' => now(),
                 ]);
 
                 WorkflowHistory::create([
                     'id' => (string) Str::uuid(),
                     'instance_id' => $task->instance_id,
-                    'from_status' => 'active',
-                    'to_status' => 'active',
+                    'task_id' => $task->id,
+                    'from_state' => $task->instance->current_state,
+                    'to_state' => $task->instance->current_state,
                     'action' => 'escalate',
-                    'comments' => "Task SLA breached. Escalated step [{$task->step->name}] to super_admin.",
+                    'comments' => "Task SLA breached. Escalated step [{$task->step_name}] to super_admin.",
                     'actioned_by' => null,
                     'created_at' => now(),
                 ]);
-
-                event(new WorkflowTaskAssigned($task->instance_id, ['task_id' => $task->id, 'role' => 'super_admin'], null));
             }
         });
     }

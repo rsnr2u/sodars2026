@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 namespace App\Modules\Finance\Domain\Entities;
 
-use App\Core\Models\BaseModel;
+use App\Core\Models\BaseBusinessModel;
 use App\Modules\Finance\Domain\Enums\SettlementStatus;
 use App\Modules\Providers\Domain\Entities\Provider;
 use App\Modules\Bookings\Domain\Entities\Booking;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class ProviderSettlement extends BaseModel
+class ProviderSettlement extends BaseBusinessModel
 {
     protected $table = 'provider_settlements';
 
     protected $fillable = [
+        'organization_id',
         'id',
         'settlement_number',
         'provider_id',

@@ -59,10 +59,27 @@ class SearchServiceProvider extends ServiceProvider
         // Auto-register indices
         $this->registerSearchIndex('inventories', \App\Modules\Inventory\Domain\Entities\Inventory::class);
         $this->registerSearchIndex('bookings', \App\Modules\Bookings\Domain\Entities\Booking::class);
-        $this->registerSearchIndex('invoices', \App\Modules\Finance\Domain\Entities\Invoice::class);
+        $this->registerSearchIndex('finance_invoices', \App\Modules\Finance\Domain\Entities\Invoice::class);
+        $this->registerSearchIndex('finance_payments', \App\Modules\Finance\Domain\Entities\Payment::class);
         $this->registerSearchIndex('crm_leads', \App\Modules\CRM\Domain\Entities\Lead::class);
         $this->registerSearchIndex('crm_opportunities', \App\Modules\CRM\Domain\Entities\Opportunity::class);
         $this->registerSearchIndex('crm_quotations', \App\Modules\CRM\Domain\Entities\Quotation::class);
+        $this->registerSearchIndex('provider_providers', \App\Modules\Providers\Domain\Entities\Provider::class);
+        $this->registerSearchIndex('campaign_campaigns', \App\Modules\Campaigns\Domain\Entities\Campaign::class);
+        $this->registerSearchIndex('wallet_wallets', \App\Modules\Wallet\Domain\Entities\Wallet::class);
+        $this->registerSearchIndex('transport_vehicles', \App\Modules\Transport\Domain\Entities\Vehicle::class);
+        $this->registerSearchIndex('transport_drivers', \App\Modules\Transport\Domain\Entities\Driver::class);
+        $this->registerSearchIndex('transport_routes', \App\Modules\Transport\Domain\Entities\Route::class);
+
+        // IoT Indices
+        $this->registerSearchIndex('iot_devices', \App\Modules\IoT\Domain\Entities\Device::class);
+        $this->registerSearchIndex('iot_commands', \App\Modules\IoT\Domain\Entities\DeviceCommand::class);
+        $this->registerSearchIndex('iot_alerts', \App\Modules\IoT\Domain\Entities\DeviceAlert::class);
+
+        // Operations Indices
+        $this->registerSearchIndex('operations_schedules', \App\Modules\Operations\Domain\Entities\Schedule::class);
+        $this->registerSearchIndex('operations_resources', \App\Modules\Operations\Domain\Entities\OperationalResource::class);
+        $this->registerSearchIndex('operations_shifts', \App\Modules\Operations\Domain\Entities\Shift::class);
     }
 
     protected function registerSearchIndex(string $name, string $entityClass): void

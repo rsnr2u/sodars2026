@@ -1,0 +1,41 @@
+{
+  "name": "Transport",
+  "version": "1.0",
+  "enabled": true,
+  "providers": [
+    "App\\Modules\\Transport\\Infrastructure\\Providers\\TransportServiceProvider"
+  ],
+  "routes": [
+    "App\\Modules\\Transport\\Presentation\\Routes\\v1\\api.php"
+  ],
+  "events_published": [
+    "transport.vehicle.created.v1",
+    "transport.vehicle.updated.v1",
+    "transport.vehicle.status_changed.v1",
+    "transport.vehicle.assigned.v1",
+    "transport.vehicle.released.v1",
+    "transport.vehicle.maintenance.scheduled.v1",
+    "transport.vehicle.maintenance.completed.v1",
+    "transport.vehicle.fuel_logged.v1",
+    "transport.vehicle.gps_logged.v1",
+    "transport.driver.created.v1",
+    "transport.driver.updated.v1",
+    "transport.driver.suspended.v1",
+    "transport.driver.license_expiring.v1",
+    "transport.route.created.v1",
+    "transport.route.dispatched.v1",
+    "transport.route.status_changed.v1",
+    "transport.route.completed.v1",
+    "transport.route.cancelled.v1"
+  ],
+  "events_consumed": [],
+  "permissions": [
+    "transport.view",
+    "transport.create",
+    "transport.update",
+    "transport.delete",
+    "transport.audit"
+  ],
+  "dependencies": ["Branches"],
+  "adr_references": []
+}

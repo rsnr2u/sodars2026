@@ -4,17 +4,19 @@ declare(strict_types=1);
 
 namespace App\Modules\Providers\Domain\Entities;
 
-use App\Core\Models\BaseModel;
+use App\Core\Models\BaseBusinessModel;
 use App\Models\User;
 use App\Modules\Providers\Domain\Enums\DocumentStatus;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ProviderDocument extends BaseModel
+class ProviderDocument extends BaseBusinessModel
 {
     protected $table = 'provider_documents';
 
     protected $fillable = [
+        'organization_id',
         'provider_id',
+        'asset_id',
         'document_type',
         'status',
         'version',
@@ -53,5 +55,10 @@ class ProviderDocument extends BaseModel
     public function supersededDocument(): BelongsTo
     {
         return $this->belongsTo(self::class, 'supersedes');
+    }
+
+    public function asset(): BelongsTo
+    {
+        return $this->belongsTo(\App\Platform\DAM\Domain\Entities\Asset::class, 'asset_id');
     }
 }

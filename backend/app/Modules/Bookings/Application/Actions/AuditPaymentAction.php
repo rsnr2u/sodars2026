@@ -7,7 +7,7 @@ namespace App\Modules\Bookings\Application\Actions;
 use App\Core\Context\TraceContext;
 use App\Core\Services\OutboxService;
 use App\Modules\Bookings\Domain\Entities\Booking;
-use App\Modules\Bookings\Domain\Entities\Payment;
+use App\Modules\Finance\Domain\Entities\Payment;
 use App\Modules\Bookings\Domain\Entities\BookingActivity;
 use App\Modules\Bookings\Domain\Enums\PaymentStatus;
 use App\Modules\Bookings\Domain\Events\PaymentAudited;

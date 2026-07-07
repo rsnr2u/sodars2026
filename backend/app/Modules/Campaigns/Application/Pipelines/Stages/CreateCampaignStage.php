@@ -6,6 +6,7 @@ namespace App\Modules\Campaigns\Application\Pipelines\Stages;
 
 use App\Modules\Campaigns\Domain\Entities\Campaign;
 use App\Modules\Campaigns\Domain\Enums\CampaignStatus;
+use App\Platform\Identity\Application\Services\IdentityContext;
 use Closure;
 use Illuminate\Support\Str;
 
@@ -27,6 +28,7 @@ class CreateCampaignStage
 
         $campaign = Campaign::create([
             'id' => (string) Str::uuid(),
+            'organization_id' => IdentityContext::organizationId(),
             'booking_id' => $dto->bookingId,
             'customer_id' => $dto->customerId,
             'branch_id' => $dto->branchId,

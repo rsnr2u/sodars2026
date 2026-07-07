@@ -4,35 +4,29 @@ declare(strict_types=1);
 
 namespace App\Modules\Campaigns\Application\Actions;
 
-use App\Core\Context\TraceContext;
-use App\Core\Services\OutboxService;
 use App\Modules\Campaigns\Domain\Entities\Campaign;
 use App\Modules\Campaigns\Domain\Entities\CampaignCreative;
-use App\Modules\Campaigns\Domain\Entities\CampaignActivity;
 use App\Modules\Campaigns\Domain\Entities\CampaignSchedule;
-use App\Modules\Campaigns\Domain\Enums\CampaignStatus;
 use App\Modules\Campaigns\Domain\Enums\CreativeStatus;
-use App\Modules\Campaigns\Domain\Events\CreativeAudited;
 use App\Modules\Campaigns\Domain\Repositories\CampaignReadRepositoryInterface;
-use App\Modules\Campaigns\Domain\Repositories\CampaignWriteRepositoryInterface;
 use App\Modules\Campaigns\Domain\Repositories\CampaignCreativeRepositoryInterface;
+use App\Modules\Campaigns\Application\Services\CampaignLifecycleService;
 use App\Platform\Scheduling\DateRange;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
 
 class AuditCreativeAction
 {
     public function __construct(
         protected CampaignReadRepositoryInterface $campaignReadRepo,
-        protected CampaignWriteRepositoryInterface $campaignWriteRepo,
         protected CampaignCreativeRepositoryInterface $creativeRepo,
-        protected OutboxService $outboxService
+        protected CampaignLifecycleService $lifecycleService
     ) {}
 
     public function execute(string $campaignId, string $creativeId, string $status, ?string $rejectionReason = null): CampaignCreative
     {
         return DB::transaction(function () use ($campaignId, $creativeId, $status, $rejectionReason) {
+            /** @var Campaign $campaign */
             $campaign = $this->campaignReadRepo->findOrFail($campaignId);
             $creative = $this->creativeRepo->findOrFail($creativeId);
 
@@ -55,21 +49,23 @@ class AuditCreativeAction
                     }
                 }
 
-                if ($allApproved && $campaign->status === CampaignStatus::ArtworkPending) {
-                    $this->campaignWriteRepo->update($campaignId, [
-                        'status' => CampaignStatus::Scheduled->value,
-                    ]);
+                if ($allApproved && $campaign->status->value === 'planning') {
+                    // Transition Planning -> Ready -> Approved -> Scheduled
+                    $this->lifecycleService->transitionTo($campaign, 'ready');
+                    $this->lifecycleService->transitionTo($campaign, 'approved');
+                    $this->lifecycleService->transitionTo($campaign, 'scheduled');
 
                     // Automatically generate mapping grids in campaign_schedule
                     $this->generateScheduleGrid($campaign);
                 }
             } else {
-                // Creative rejected, revert campaign status to artwork_pending
-                $this->campaignWriteRepo->update($campaignId, [
-                    'status' => CampaignStatus::ArtworkPending->value,
-                ]);
+                // Creative rejected, campaign remains in or is reverted to planning if needed
+                if ($campaign->status->value !== 'planning') {
+                    // We don't have back transitions defined, but if it is already planning, no change is needed.
+                }
             }
 
+            // Delegate events and outbox logs to the lifecycle service
             $eventData = [
                 'creative_id' => $creativeId,
                 'campaign_id' => $campaignId,
@@ -77,39 +73,11 @@ class AuditCreativeAction
                 'rejection_reason' => $rejectionReason,
             ];
 
-            // Outbox
-            $this->outboxService->record(
-                aggregateType: 'Campaign',
-                aggregateId: $campaignId,
-                eventName: 'campaign.creative.audited.v1',
-                data: $eventData,
-                eventVersion: 1,
-                schemaVersion: '1.0.0'
-            );
-
-            // Domain Event
-            Event::dispatch(new CreativeAudited(
-                aggregateId: $campaignId,
-                aggregateVersion: 1,
-                data: $eventData,
-                occurredAt: now()->toIso8601String(),
-                correlationId: TraceContext::correlationId() ?? (string) Str::uuid(),
-                traceId: TraceContext::traceId() ?? (string) Str::uuid()
-            ));
-
-            // Activity Log
-            CampaignActivity::create([
-                'id' => (string) Str::uuid(),
-                'campaign_id' => $campaignId,
-                'performed_by' => auth()->id(),
-                'event_name' => 'campaign.creative.audited.v1',
-                'action' => 'CreativeAudited',
-                'old_values' => null,
-                'new_values' => $creative->toArray(),
-                'ip' => request()->ip(),
-                'user_agent' => request()->userAgent(),
-                'trace_id' => TraceContext::traceId() ?? (string) Str::uuid(),
-            ]);
+            if ($status === CreativeStatus::Approved->value) {
+                $this->lifecycleService->recordProofApproved($campaign, $eventData); // Notify approved
+            } else {
+                $this->lifecycleService->recordCreativeRemoved($campaign, $eventData); // Log rejection
+            }
 
             return $creative;
         });
@@ -137,6 +105,7 @@ class AuditCreativeAction
 
                 CampaignSchedule::create([
                     'id' => (string) Str::uuid(),
+                    'organization_id' => $campaign->organization_id,
                     'campaign_id' => $campaign->id,
                     'inventory_face_id' => $face->id,
                     'date' => $dayRange->start->toDateString(),

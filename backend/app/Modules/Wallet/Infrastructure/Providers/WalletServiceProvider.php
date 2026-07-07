@@ -27,5 +27,13 @@ class WalletServiceProvider extends ServiceProvider
 
         // Wire Settlement Paid listener
         Event::subscribe(SettlementListener::class);
+
+        if ($this->app->bound(\App\Platform\Workflows\Infrastructure\Registry\WorkflowRegistry::class)) {
+            $registry = $this->app->make(\App\Platform\Workflows\Infrastructure\Registry\WorkflowRegistry::class);
+            $registry->register(
+                \App\Modules\Wallet\Domain\Entities\Withdrawal::class,
+                \App\Modules\Wallet\Infrastructure\Workflows\WithdrawalWorkflowHandler::class
+            );
+        }
     }
 }

@@ -7,6 +7,7 @@ namespace App\Modules\Providers\Application\Pipelines\Stages;
 use App\Modules\Providers\Domain\Entities\ProviderContact;
 use App\Modules\Providers\Domain\Enums\ContactType;
 use App\Modules\Providers\Domain\Repositories\ProviderWriteRepositoryInterface;
+use App\Platform\Identity\Application\Services\IdentityContext;
 use Closure;
 
 class CreateProviderStage
@@ -25,7 +26,10 @@ class CreateProviderStage
         // Generate unique sequential provider code: PRV-000000
         $code = 'PRV-' . str_pad((string) rand(1, 999999), 6, '0', STR_PAD_LEFT);
 
+        $orgId = IdentityContext::organizationId();
+
         $provider = $this->providerRepo->create([
+            'organization_id' => $orgId,
             'company_name' => $dto->companyName,
             'registration_number' => $dto->registrationNumber,
             'provider_code' => $code,
@@ -38,6 +42,7 @@ class CreateProviderStage
 
         // Create initial owner contact
         ProviderContact::create([
+            'organization_id' => $orgId,
             'provider_id' => $provider->id,
             'contact_name' => $dto->contactName,
             'email' => $dto->email,

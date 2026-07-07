@@ -9,8 +9,9 @@ enum ProviderStatus: string
     case Draft = 'draft';
     case Pending = 'pending';
     case Verified = 'verified';
+    case Active = 'active';
     case Suspended = 'suspended';
-    case Deactivated = 'deactivated';
+    case Archived = 'archived';
 
     /**
      * Get allowed status transitions for the provider.
@@ -22,9 +23,10 @@ enum ProviderStatus: string
         return [
             self::Draft->value => [self::Pending->value],
             self::Pending->value => [self::Verified->value, self::Draft->value],
-            self::Verified->value => [self::Suspended->value, self::Deactivated->value],
-            self::Suspended->value => [self::Verified->value, self::Deactivated->value],
-            self::Deactivated->value => [],
+            self::Verified->value => [self::Active->value, self::Suspended->value],
+            self::Active->value => [self::Suspended->value, self::Archived->value],
+            self::Suspended->value => [self::Active->value, self::Archived->value],
+            self::Archived->value => [],
         ];
     }
 }

@@ -18,6 +18,7 @@ class CreateSettingsStage
         $provider = $passable['provider'];
 
         ProviderSetting::create([
+            'organization_id' => $provider->organization_id,
             'provider_id' => $provider->id,
             'settings' => new ProviderSettings(
                 marketplaceEnabled: true,

@@ -38,5 +38,13 @@ class CampaignServiceProvider extends ServiceProvider
         Gate::policy(Campaign::class, CampaignPolicy::class);
 
         $this->loadRoutesFrom(__DIR__ . '/../../Presentation/Routes/v1/api.php');
+
+        if ($this->app->bound(\App\Platform\Workflows\Infrastructure\Registry\WorkflowRegistry::class)) {
+            $registry = $this->app->make(\App\Platform\Workflows\Infrastructure\Registry\WorkflowRegistry::class);
+            $registry->register(
+                \App\Modules\Campaigns\Domain\Entities\Campaign::class,
+                \App\Modules\Campaigns\Infrastructure\Workflows\CampaignWorkflowHandler::class
+            );
+        }
     }
 }

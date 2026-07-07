@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Providers\Domain\Entities;
 
-use App\Core\Models\BaseModel;
+use App\Core\Models\BaseBusinessModel;
 use App\Platform\Shared\Domain\Entities\City;
 use App\Platform\Shared\Domain\Entities\Country;
 use App\Platform\Shared\Domain\Entities\District;
@@ -12,11 +12,12 @@ use App\Platform\Shared\Domain\Entities\Pincode;
 use App\Platform\Shared\Domain\Entities\State;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ProviderAddress extends BaseModel
+class ProviderAddress extends BaseBusinessModel
 {
     protected $table = 'provider_addresses';
 
     protected $fillable = [
+        'organization_id',
         'provider_id',
         'country_id',
         'state_id',

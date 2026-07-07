@@ -150,7 +150,7 @@ class IntegrationsApiTest extends ApiTestCase
         // Create subscription
         $response = $this->postJson('/api/v1/integrations/webhooks', [
             'target_url' => 'https://example.com/webhook',
-            'event_types' => ['booking.created', 'invoice.created'],
+            'event_types' => ['booking.created', 'finance.invoice.created'],
         ]);
         $response->assertStatus(201);
         $subId = $response->json('data.id');
@@ -338,7 +338,7 @@ class IntegrationsApiTest extends ApiTestCase
 
         $this->assertContains('booking.created', $events);
         $this->assertContains('booking.status_changed', $events);
-        $this->assertContains('invoice.created', $events);
+        $this->assertContains('finance.invoice.created', $events);
         $this->assertContains('inventory.created', $events);
 
         $this->assertTrue(WebhookEventRegistry::isValid('booking.created'));

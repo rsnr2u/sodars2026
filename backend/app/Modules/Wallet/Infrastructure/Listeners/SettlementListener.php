@@ -8,6 +8,7 @@ use App\Modules\Finance\Domain\Events\SettlementPaid;
 use App\Modules\Finance\Domain\Entities\ProviderSettlement;
 use App\Modules\Wallet\Domain\Services\WalletService;
 use App\Modules\Wallet\Domain\Entities\Wallet;
+use App\Modules\Wallet\Domain\Entities\WalletTransaction;
 use App\Modules\Providers\Domain\Entities\Provider;
 use Illuminate\Support\Facades\Log;
 
@@ -21,6 +22,13 @@ class SettlementListener
         $settlement = ProviderSettlement::find($settlementId);
 
         if (!$settlement) {
+            return;
+        }
+
+        // Idempotency check:
+        $exists = WalletTransaction::where('settlement_id', $settlement->id)->exists();
+        if ($exists) {
+            Log::info("Settlement paid event already processed for settlement {$settlement->id}. Ignoring.");
             return;
         }
 

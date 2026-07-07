@@ -7,7 +7,9 @@ namespace App\Modules\Campaigns\Domain\Enums;
 enum CampaignStatus: string
 {
     case Draft = 'draft';
-    case ArtworkPending = 'artwork_pending';
+    case Planning = 'planning';
+    case Ready = 'ready';
+    case Approved = 'approved';
     case Scheduled = 'scheduled';
     case Running = 'running';
     case Paused = 'paused';
@@ -20,12 +22,14 @@ enum CampaignStatus: string
     public static function allowedTransitions(): array
     {
         return [
-            self::Draft->value => [self::ArtworkPending->value],
-            self::ArtworkPending->value => [self::Scheduled->value, self::Draft->value],
+            self::Draft->value => [self::Planning->value],
+            self::Planning->value => [self::Ready->value],
+            self::Ready->value => [self::Approved->value],
+            self::Approved->value => [self::Scheduled->value, self::Paused->value],
             self::Scheduled->value => [self::Running->value, self::Paused->value],
             self::Running->value => [self::Paused->value, self::Completed->value],
-            self::Paused->value => [self::Running->value, self::Completed->value],
             self::Completed->value => [self::Archived->value],
+            self::Paused->value => [self::Running->value, self::Archived->value],
             self::Archived->value => [],
         ];
     }

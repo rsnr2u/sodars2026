@@ -44,5 +44,13 @@ class ProviderServiceProvider extends ServiceProvider
         Gate::policy(Provider::class, ProviderPolicy::class);
 
         $this->loadRoutesFrom(__DIR__ . '/../../Presentation/Routes/v1/api.php');
+
+        if ($this->app->bound(\App\Platform\Workflows\Infrastructure\Registry\WorkflowRegistry::class)) {
+            $registry = $this->app->make(\App\Platform\Workflows\Infrastructure\Registry\WorkflowRegistry::class);
+            $registry->register(
+                \App\Modules\Providers\Domain\Entities\Provider::class,
+                \App\Modules\Providers\Infrastructure\Workflows\ProviderWorkflowHandler::class
+            );
+        }
     }
 }

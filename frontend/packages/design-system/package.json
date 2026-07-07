@@ -1,0 +1,10 @@
+{
+  "name": "@sodars/design-system",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.tsx",
+  "dependencies": {
+    "@sodars/auth": "*",
+    "react": "^19.0.0"
+  }
+}

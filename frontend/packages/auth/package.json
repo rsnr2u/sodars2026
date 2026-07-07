@@ -1,0 +1,10 @@
+{
+  "name": "@sodars/auth",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "dependencies": {
+    "@sodars/contracts": "*",
+    "zustand": "^5.0.0"
+  }
+}

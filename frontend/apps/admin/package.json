@@ -1,0 +1,34 @@
+{
+  "name": "admin-portal",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@sodars/core": "*",
+    "@sodars/contracts": "*",
+    "@sodars/sdk": "*",
+    "@sodars/auth": "*",
+    "@sodars/api": "*",
+    "@sodars/design-system": "*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@tanstack/react-router": "^1.97.10",
+    "lucide-react": "^0.471.1"
+  },
+  "devDependencies": {
+    "@sodars/config": "*",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7",
+    "tailwindcss": "^4.0.0",
+    "@tailwindcss/vite": "^4.0.0"
+  }
+}

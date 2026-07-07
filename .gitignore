@@ -14,3 +14,17 @@ backend/storage/framework/views/*
 backend/storage/logs/*
 backend/.env
 backend/.phpunit.result.cache
+
+# Frontend Monorepo Ignores
+frontend/node_modules/
+frontend/apps/*/dist/
+frontend/apps/*/node_modules/
+frontend/packages/*/node_modules/
+frontend/packages/*/dist/
+frontend/.turbo/
+.turbo/
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+

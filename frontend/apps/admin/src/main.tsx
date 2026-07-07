@@ -1,0 +1,72 @@
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { RouterProvider, createRouter } from '@tanstack/react-router';
+import { NavigationRegistry } from '@sodars/sdk';
+import { useAuthStore, useTenantStore } from '@sodars/auth';
+import { mockUser, mockOrganization } from '@sodars/testing';
+import './index.css';
+
+// 1. Register fallback routes in Navigation SDK
+NavigationRegistry.register({
+  id: 'dashboard',
+  label: 'Dashboard Control',
+  path: '/',
+  icon: 'LayoutDashboard',
+  priority: 1,
+});
+
+NavigationRegistry.register({
+  id: 'crm',
+  label: 'CRM Leads',
+  path: '/crm',
+  icon: 'Users',
+  priority: 10,
+});
+
+NavigationRegistry.register({
+  id: 'campaigns',
+  label: 'Campaigns Control',
+  path: '/campaigns',
+  icon: 'Megaphone',
+  priority: 20,
+});
+
+NavigationRegistry.register({
+  id: 'operations',
+  label: 'Operations Planner',
+  path: '/operations',
+  icon: 'CalendarDays',
+  priority: 30,
+});
+
+// Import route definitions
+import { Route as rootRoute } from './routes/__root';
+import { Route as indexRoute } from './routes/index';
+
+// Build route tree mapping
+const routeTree = rootRoute.addChildren([
+  indexRoute as any,
+]);
+
+// Build router instance
+const router = createRouter({ routeTree });
+
+// Inject local mock credentials for testing/initial UI loading
+const initAuth = () => {
+  const authStore = useAuthStore.getState();
+  if (!authStore.token) {
+    authStore.setSession('mock-jwt-auth-session-key', mockUser);
+  }
+  const tenantStore = useTenantStore.getState();
+  if (!tenantStore.activeOrganization) {
+    tenantStore.setActiveOrganization(mockOrganization);
+  }
+};
+
+initAuth();
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <RouterProvider router={router} />
+  </React.StrictMode>
+);

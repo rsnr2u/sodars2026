@@ -25,6 +25,8 @@
     "@sodars/realtime": "*",
     "@sodars/feature-flags": "*",
     "@sodars/telemetry": "*",
+    "@sodars/platform": "*",
+    "@sodars/security": "*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "@tanstack/react-router": "^1.97.10",

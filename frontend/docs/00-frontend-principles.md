@@ -27,3 +27,15 @@ Enforce user authorization parameters declaratively using the `PermissionGate` c
 
 ## 8. Lazy Loading
 Every portal module must be dynamic-imported and lazy-loaded to ensure rapid initial page load speeds and tiny assets chunk sizes.
+
+## 9. Layout Rule
+Layout components (Sidebars, Topbars, ShellLayouts) live in `@sodars/layout`, never in the presentational `@sodars/design-system` package.
+
+## 10. Registry Rule
+Navigation nodes, widgets, commands, shortcuts, and notification mappings are dynamically registered through SDK registries, never hardcoded in layout views.
+
+## 11. Provider Rule
+Cross-cutting concerns (Theming, Query clients, websocket notification channels, auth sessions) are resolved using global contexts/providers, keeping pages stateless.
+
+## 12. Module Symmetry Rule
+Every frontend module must map directly 1-to-1 to its corresponding backend bounded context domain, sharing identical names and structural paradigms.

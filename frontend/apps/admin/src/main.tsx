@@ -2,7 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { RouterProvider, createRouter } from '@tanstack/react-router';
 import { NavigationRegistry } from '@sodars/sdk';
-import { useAuthStore, useTenantStore } from '@sodars/auth';
+import { useAuthStore, useTenantStore } from '@sodars/store';
+import { AppProviders } from '@sodars/providers';
 import { mockUser, mockOrganization } from '@sodars/testing';
 import './index.css';
 
@@ -67,6 +68,8 @@ initAuth();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <AppProviders>
+      <RouterProvider router={router} />
+    </AppProviders>
   </React.StrictMode>
 );

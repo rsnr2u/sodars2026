@@ -1,0 +1,11 @@
+{
+  "name": "@sodars/providers",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.tsx",
+  "dependencies": {
+    "@sodars/query": "*",
+    "@sodars/layout": "*",
+    "react": "^19.0.0"
+  }
+}

@@ -5,6 +5,7 @@
   "main": "src/index.ts",
   "dependencies": {
     "@sodars/auth": "*",
+    "@sodars/store": "*",
     "axios": "^1.7.9"
   }
 }

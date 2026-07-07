@@ -43,10 +43,15 @@ NavigationRegistry.register({
 // Import route definitions
 import { Route as rootRoute } from './routes/__root';
 import { Route as indexRoute } from './routes/index';
+import { Route as loginRoute } from './routes/login';
+import { Route as protectedRoute } from './routes/_protected';
 
 // Build route tree mapping
 const routeTree = rootRoute.addChildren([
-  indexRoute as any,
+  loginRoute as any,
+  protectedRoute.addChildren([
+    indexRoute as any,
+  ]) as any,
 ]);
 
 // Build router instance

@@ -1,10 +1,10 @@
 import { Route as TSRoute } from '@tanstack/react-router';
 import { WidgetSDK } from '@sodars/sdk';
 import { Button } from '@sodars/design-system';
-import { Route as rootRoute } from './__root';
+import { Route as protectedRoute } from './_protected';
 
 export const Route = new TSRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => protectedRoute,
   path: '/',
   component: DashboardComponent,
 });

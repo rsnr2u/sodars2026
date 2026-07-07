@@ -1,5 +1,6 @@
 import React from 'react';
-import { useAuthStore } from '@sodars/auth';
+import { usePermissionStore } from '@sodars/store';
+import { identity } from '@sodars/auth';
 
 // Permission Gate
 interface PermissionGateProps {
@@ -13,8 +14,8 @@ export const PermissionGate: React.FC<PermissionGateProps> = ({
   children,
   fallback = null
 }) => {
-  const hasPermission = useAuthStore(state => state.hasPermission);
-  if (!hasPermission(can)) {
+  usePermissionStore((state: any) => state.permissions);
+  if (!identity.can(can)) {
     return <>{fallback}</>;
   }
   return <>{children}</>;

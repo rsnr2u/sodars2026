@@ -1,40 +1,12 @@
 import { create } from 'zustand';
-import { UserDTO, OrganizationDTO } from '@sodars/contracts';
 
-// 1. Auth Store
-interface AuthState {
-  token: string | null;
-  user: UserDTO | null;
-  setSession: (token: string, user: UserDTO) => void;
-  clearSession: () => void;
-  hasPermission: (permission: string) => boolean;
-}
+// Re-export individual stores
+export * from './authStore';
+export * from './tenantStore';
+export * from './permissionStore';
+export * from './sessionStore';
 
-export const useAuthStore = create<AuthState>((set, get) => ({
-  token: null,
-  user: null,
-  setSession: (token, user) => set({ token, user }),
-  clearSession: () => set({ token: null, user: null }),
-  hasPermission: (permission) => {
-    const user = get().user;
-    if (!user) return false;
-    if (user.roles.includes('super_admin')) return true;
-    return user.permissions.includes(permission);
-  }
-}));
-
-// 2. Tenant Store
-interface TenantState {
-  activeOrganization: OrganizationDTO | null;
-  setActiveOrganization: (org: OrganizationDTO | null) => void;
-}
-
-export const useTenantStore = create<TenantState>((set) => ({
-  activeOrganization: null,
-  setActiveOrganization: (org) => set({ activeOrganization: org }),
-}));
-
-// 3. Theme Store
+// Keep UI Layout Stores in Index for clean monorepo bundling
 export type ThemeMode = 'light' | 'dark' | 'system';
 
 interface ThemeState {
@@ -47,7 +19,6 @@ export const useThemeStore = create<ThemeState>((set) => ({
   setTheme: (theme) => set({ theme }),
 }));
 
-// 4. Sidebar Store
 interface SidebarState {
   isOpen: boolean;
   toggle: () => void;
@@ -60,8 +31,7 @@ export const useSidebarStore = create<SidebarState>((set) => ({
   setOpen: (isOpen) => set({ isOpen }),
 }));
 
-// 5. Notification Store
-interface NotificationItem {
+export interface NotificationItem {
   id: string;
   title: string;
   message: string;

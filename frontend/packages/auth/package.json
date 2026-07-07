@@ -5,6 +5,10 @@
   "main": "src/index.ts",
   "dependencies": {
     "@sodars/contracts": "*",
+    "@sodars/store": "*",
+    "@sodars/events": "*",
+    "@sodars/security": "*",
+    "react": "^19.0.0",
     "zustand": "^5.0.0"
   }
 }

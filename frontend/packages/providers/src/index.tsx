@@ -1,12 +1,9 @@
 import React from 'react';
 import { QueryProvider } from '@sodars/query';
 import { ShellProvider } from '@sodars/layout';
+import { AuthProvider } from '@sodars/auth';
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return React.createElement(React.Fragment, null, children);
-};
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return React.createElement(React.Fragment, null, children);
 };
 
@@ -38,4 +35,4 @@ export const AppProviders: React.FC<{ children: React.ReactNode }> = ({ children
     )
   );
 };
-export { ShellProvider, QueryProvider };
+export { ShellProvider, QueryProvider, AuthProvider };

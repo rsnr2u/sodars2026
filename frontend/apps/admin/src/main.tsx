@@ -56,7 +56,7 @@ const router = createRouter({ routeTree });
 const initAuth = () => {
   const authStore = useAuthStore.getState();
   if (!authStore.token) {
-    authStore.setSession('mock-jwt-auth-session-key', mockUser);
+    authStore.setSession('mock-jwt-auth-session-key', 'mock-refresh-token', mockUser);
   }
   const tenantStore = useTenantStore.getState();
   if (!tenantStore.activeOrganization) {

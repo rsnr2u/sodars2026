@@ -29,6 +29,7 @@ export interface UserDTO {
   email: string;
   roles: string[];
   permissions: string[];
+  organizations?: OrganizationDTO[];
 }
 
 export interface OrganizationDTO {

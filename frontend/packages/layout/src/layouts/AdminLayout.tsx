@@ -3,6 +3,8 @@ import { Sidebar } from '../components/Sidebar';
 import { Topbar } from '../components/Topbar';
 import { Footer } from '../components/Footer';
 import { Breadcrumbs } from '../components/Breadcrumbs';
+import { CommandPalette } from '../components/CommandPalette';
+import { ShortcutsHelpDialog } from '../components/ShortcutsHelpDialog';
 
 export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
@@ -24,6 +26,10 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
         
         <Footer />
       </div>
+
+      {/* Global overlays */}
+      <CommandPalette />
+      <ShortcutsHelpDialog />
     </div>
   );
 };

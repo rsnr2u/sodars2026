@@ -52,11 +52,39 @@ export class CommandRegistry extends BaseRegistry<AppCommand> {
     if (!query) return list;
 
     const lowerQuery = query.toLowerCase();
-    return list.filter(cmd => 
-      cmd.title.toLowerCase().includes(lowerQuery) ||
-      cmd.keywords.some(k => k.toLowerCase().includes(lowerQuery)) ||
-      (cmd.aliases && cmd.aliases.some(a => a.toLowerCase().includes(lowerQuery)))
-    );
+    const scored = list
+      .map(cmd => {
+        let score = 0;
+        
+        if (cmd.title.toLowerCase() === lowerQuery) {
+          score += 150;
+        } else if (cmd.title.toLowerCase().includes(lowerQuery)) {
+          score += 100;
+        }
+
+        if (cmd.keywords.some(k => k.toLowerCase() === lowerQuery)) {
+          score += 80;
+        } else if (cmd.keywords.some(k => k.toLowerCase().includes(lowerQuery))) {
+          score += 60;
+        }
+
+        if (cmd.aliases && cmd.aliases.some(a => a.toLowerCase() === lowerQuery)) {
+          score += 50;
+        } else if (cmd.aliases && cmd.aliases.some(a => a.toLowerCase().includes(lowerQuery))) {
+          score += 40;
+        }
+
+        if (cmd.description && cmd.description.toLowerCase().includes(lowerQuery)) {
+          score += 20;
+        }
+
+        return { cmd, score };
+      })
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score || a.cmd.order - b.cmd.order)
+      .map(item => item.cmd);
+
+    return Object.freeze(scored);
   }
 
   public static clear(): void {

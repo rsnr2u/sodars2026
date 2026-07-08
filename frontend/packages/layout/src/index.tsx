@@ -13,6 +13,8 @@ export * from './components/Sidebar';
 export * from './components/Topbar';
 export * from './components/Footer';
 export * from './components/Breadcrumbs';
+export * from './components/CommandPalette';
+export * from './components/ShortcutsHelpDialog';
 
 // 4. Layouts
 export * from './layouts/AdminLayout';

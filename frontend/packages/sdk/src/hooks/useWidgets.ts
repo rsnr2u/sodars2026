@@ -1,19 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useSyncExternalStore } from 'react';
 import { WidgetRegistry, DashboardWidget } from '../index';
 
-export const useWidgets = () => {
-  const [widgets, setWidgets] = useState<ReadonlyArray<DashboardWidget>>(() => 
-    WidgetRegistry.getWidgets()
+export const useWidgets = (): ReadonlyArray<DashboardWidget> => {
+  return useSyncExternalStore(
+    (listener) => WidgetRegistry.subscribe(listener),
+    () => WidgetRegistry.getWidgets()
   );
-
-  useEffect(() => {
-    // Subscribe directly to the registry updates
-    const unsubscribe = WidgetRegistry.subscribe(() => {
-      setWidgets(WidgetRegistry.getWidgets());
-    });
-    return unsubscribe;
-  }, []);
-
-  return widgets;
 };
 export default useWidgets;

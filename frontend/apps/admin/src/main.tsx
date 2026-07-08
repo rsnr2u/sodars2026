@@ -44,22 +44,63 @@ NavigationRegistry.register({
   order: 30,
 });
 
+NavigationRegistry.register({
+  id: 'diagnostics',
+  module: 'settings',
+  title: 'Diagnostics Console',
+  route: '/diagnostics',
+  icon: 'settings',
+  order: 100,
+});
+
 // Import route definitions
 import { Route as rootRoute } from './routes/__root';
 import { Route as indexRoute } from './routes/index';
 import { Route as loginRoute } from './routes/login';
 import { Route as protectedRoute } from './routes/_protected';
+import { Route as diagnosticsRoute } from './routes/diagnostics';
 
 // Build route tree mapping
 const routeTree = rootRoute.addChildren([
   loginRoute as any,
   protectedRoute.addChildren([
     indexRoute as any,
+    diagnosticsRoute as any,
   ]) as any,
 ]);
 
 // Build router instance
 const router = createRouter({ routeTree });
+
+import { CommandRegistry } from '@sodars/sdk';
+
+CommandRegistry.register({
+  id: 'cmd.diagnostics',
+  module: 'settings',
+  title: 'Open Diagnostics Console',
+  keywords: ['diagnostics', 'logs', 'telemetry', 'debug'],
+  description: 'Navigate to development systems diagnostics console dashboard',
+  group: 'System',
+  icon: 'settings',
+  order: 1,
+  execute: (ctx) => {
+    ctx.router.navigate('/diagnostics');
+  }
+});
+
+CommandRegistry.register({
+  id: 'cmd.dashboard',
+  module: 'dashboard',
+  title: 'Go to Dashboard Overview',
+  keywords: ['home', 'dashboard', 'control room'],
+  description: 'Navigate to platform status control overview',
+  group: 'Navigation',
+  icon: 'dashboard',
+  order: 2,
+  execute: (ctx) => {
+    ctx.router.navigate('/');
+  }
+});
 
 // Inject local mock credentials for testing/initial UI loading
 const initAuth = () => {

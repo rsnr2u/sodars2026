@@ -198,3 +198,4 @@ export * from './adapters/TelemetryAdapter';
 export * from './hooks/useNavigation';
 export * from './hooks/useWidgets';
 export * from './hooks/useCommands';
+export * from './module/ModuleManager';

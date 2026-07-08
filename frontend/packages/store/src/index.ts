@@ -7,16 +7,31 @@ export * from './permissionStore';
 export * from './sessionStore';
 
 // Keep UI Layout Stores in Index for clean monorepo bundling
-export type ThemeMode = 'light' | 'dark' | 'system';
+export enum ThemeMode {
+  Light = 'light',
+  Dark = 'dark',
+  System = 'system'
+}
 
 interface ThemeState {
   theme: ThemeMode;
   setTheme: (theme: ThemeMode) => void;
 }
 
+const getSavedTheme = (): ThemeMode => {
+  const saved = localStorage.getItem('sodars_theme_mode') as ThemeMode | null;
+  if (saved && Object.values(ThemeMode).includes(saved)) {
+    return saved;
+  }
+  return ThemeMode.System;
+};
+
 export const useThemeStore = create<ThemeState>((set) => ({
-  theme: 'system',
-  setTheme: (theme) => set({ theme }),
+  theme: getSavedTheme(),
+  setTheme: (theme) => {
+    localStorage.setItem('sodars_theme_mode', theme);
+    set({ theme });
+  },
 }));
 
 interface SidebarState {
@@ -25,10 +40,21 @@ interface SidebarState {
   setOpen: (open: boolean) => void;
 }
 
+const getSidebarSavedState = (): boolean => {
+  return localStorage.getItem('sodars_sidebar_collapsed') !== 'true';
+};
+
 export const useSidebarStore = create<SidebarState>((set) => ({
-  isOpen: true,
-  toggle: () => set((state) => ({ isOpen: !state.isOpen })),
-  setOpen: (isOpen) => set({ isOpen }),
+  isOpen: getSidebarSavedState(),
+  toggle: () => set((state) => {
+    const nextOpen = !state.isOpen;
+    localStorage.setItem('sodars_sidebar_collapsed', (!nextOpen).toString());
+    return { isOpen: nextOpen };
+  }),
+  setOpen: (isOpen) => {
+    localStorage.setItem('sodars_sidebar_collapsed', (!isOpen).toString());
+    set({ isOpen });
+  },
 }));
 
 export interface NotificationItem {

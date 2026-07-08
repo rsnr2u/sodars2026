@@ -6,6 +6,9 @@
   "dependencies": {
     "@sodars/query": "*",
     "@sodars/layout": "*",
+    "@sodars/store": "*",
+    "@sodars/events": "*",
+    "@sodars/auth": "*",
     "react": "^19.0.0"
   }
 }

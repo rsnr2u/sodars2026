@@ -2,10 +2,7 @@ import React from 'react';
 import { QueryProvider } from '@sodars/query';
 import { ShellProvider } from '@sodars/layout';
 import { AuthProvider } from '@sodars/auth';
-
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return React.createElement(React.Fragment, null, children);
-};
+import { ThemeProvider, useTheme } from './ThemeProvider';
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return React.createElement(React.Fragment, null, children);
@@ -35,4 +32,4 @@ export const AppProviders: React.FC<{ children: React.ReactNode }> = ({ children
     )
   );
 };
-export { ShellProvider, QueryProvider, AuthProvider };
+export { ShellProvider, QueryProvider, AuthProvider, ThemeProvider, useTheme };

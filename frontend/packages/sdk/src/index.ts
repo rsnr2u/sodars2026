@@ -1,31 +1,46 @@
 import React from 'react';
 import { IconType } from '@sodars/icons';
 
+export type ModuleId =
+  | 'dashboard'
+  | 'crm'
+  | 'campaign'
+  | 'inventory'
+  | 'provider'
+  | 'wallet'
+  | 'finance'
+  | 'transport'
+  | 'operations'
+  | 'analytics'
+  | 'audit'
+  | 'iam'
+  | 'settings';
+
 // 1. Badge Definition
 export interface BadgeDefinition {
-  value: string | number;
-  variant: 'primary' | 'success' | 'warning' | 'danger' | 'info';
-  pulse?: boolean;
-  tooltip?: string;
+  readonly value: string | number;
+  readonly variant: 'primary' | 'success' | 'warning' | 'danger' | 'info';
+  readonly pulse?: boolean;
+  readonly tooltip?: string;
 }
 
 // 2. Navigation Node
 export interface NavigationNode {
-  id: string; // Hierarchical dot-separated notation (e.g. 'crm.leads')
-  module: string; // Ownership module namespace
-  title: string;
-  route?: string;
-  icon?: IconType;
-  parent?: string;
-  order: number;
-  permission?: string;
-  featureFlag?: string;
-  badge?: BadgeDefinition;
-  hidden?: boolean;
-  disabled?: boolean;
-  external?: boolean;
-  target?: "_self" | "_blank";
-  children?: NavigationNode[];
+  readonly id: string; // Hierarchical dot-separated notation (e.g. 'crm.leads')
+  readonly module: ModuleId; // Ownership module namespace
+  readonly title: string;
+  readonly route?: string;
+  readonly icon?: IconType;
+  readonly parent?: string;
+  readonly order: number;
+  readonly permission?: string;
+  readonly featureFlag?: string;
+  readonly badge?: Readonly<BadgeDefinition>;
+  readonly hidden?: boolean;
+  readonly disabled?: boolean;
+  readonly external?: boolean;
+  readonly target?: "_self" | "_blank";
+  readonly children?: ReadonlyArray<NavigationNode>;
 }
 
 // 3. Navigation Registry API
@@ -78,9 +93,31 @@ export class NavigationRegistry {
   public static getTree(): ReadonlyArray<NavigationNode> {
     if (this.cachedTree) return this.cachedTree;
 
-    const flatList = this.getFlatList().map(node => ({ ...node, children: [] as NavigationNode[] }));
-    const rootNodes: NavigationNode[] = [];
-    const nodeMap = new Map<string, NavigationNode>();
+    interface MutableNode {
+      id: string;
+      module: ModuleId;
+      title: string;
+      route?: string;
+      icon?: IconType;
+      parent?: string;
+      order: number;
+      permission?: string;
+      featureFlag?: string;
+      badge?: BadgeDefinition;
+      hidden?: boolean;
+      disabled?: boolean;
+      external?: boolean;
+      target?: "_self" | "_blank";
+      children: MutableNode[];
+    }
+
+    const flatList = this.getFlatList().map(node => ({
+      ...node,
+      children: [] as MutableNode[]
+    })) as unknown as MutableNode[];
+
+    const rootNodes: MutableNode[] = [];
+    const nodeMap = new Map<string, MutableNode>();
 
     for (const node of flatList) {
       nodeMap.set(node.id, node);
@@ -89,7 +126,6 @@ export class NavigationRegistry {
     for (const node of flatList) {
       if (node.parent && nodeMap.has(node.parent)) {
         const parentNode = nodeMap.get(node.parent)!;
-        parentNode.children = parentNode.children ?? [];
         parentNode.children.push(node);
         parentNode.children.sort((a, b) => a.order - b.order);
       } else {
@@ -100,7 +136,7 @@ export class NavigationRegistry {
     rootNodes.sort((a, b) => a.order - b.order);
 
     // Deep freeze the constructed tree to ensure immutability
-    const deepFreeze = (arr: NavigationNode[]): ReadonlyArray<NavigationNode> => {
+    const deepFreeze = (arr: any[]): ReadonlyArray<NavigationNode> => {
       arr.forEach(node => {
         if (node.children) {
           deepFreeze(node.children);

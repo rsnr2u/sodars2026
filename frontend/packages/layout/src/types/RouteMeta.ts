@@ -1,9 +1,12 @@
 import { IconType } from '@sodars/icons';
 import { RouteParams } from './RouteParams';
+import { ModuleId } from '@sodars/sdk';
 
 export interface RouteMeta {
   id: string;
-  module: string; // Required ownership module
+  module: ModuleId; // Required ownership module
+  resource?: string; // Optional resource (e.g. 'lead')
+  action?: string; // Optional action (e.g. 'view')
   layout: "admin" | "auth"; // Required layout context
   title: string;
   breadcrumb?: string | ((params: RouteParams) => string);

@@ -1,12 +1,12 @@
 import React from 'react';
-import { NavigationRegistry, NavigationNode } from '@sodars/sdk';
+import { useNavigation, NavigationNode } from '@sodars/sdk';
 import { useSidebarStore, useAuthStore } from '@sodars/store';
 import { SodarsIcon } from '@sodars/icons';
 
 export const Sidebar: React.FC = () => {
   const { isOpen, toggle } = useSidebarStore();
   const { clearSession } = useAuthStore();
-  const treeNodes = NavigationRegistry.getTree();
+  const treeNodes = useNavigation();
 
   const handleLogout = () => {
     clearSession();

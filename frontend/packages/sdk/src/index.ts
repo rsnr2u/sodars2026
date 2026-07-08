@@ -24,6 +24,12 @@ export type ModuleId =
   | 'iam'
   | 'settings';
 
+export interface RegistryItem {
+  readonly id: string;
+  readonly module: ModuleId;
+  readonly order: number;
+}
+
 // 2. Context Types
 export interface BootstrapContext {
   readonly config: typeof Config;
@@ -189,3 +195,6 @@ export * from './adapters/QueryClientAdapter';
 export * from './adapters/RouterAdapter';
 export * from './adapters/RequestContextAdapter';
 export * from './adapters/TelemetryAdapter';
+export * from './hooks/useNavigation';
+export * from './hooks/useWidgets';
+export * from './hooks/useCommands';

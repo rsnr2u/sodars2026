@@ -1,5 +1,5 @@
 import { Route as TSRoute } from '@tanstack/react-router';
-import { WidgetRegistry } from '@sodars/sdk';
+import { useWidgets } from '@sodars/sdk';
 import { Button } from '@sodars/design-system';
 import { Route as protectedRoute } from './_protected';
 
@@ -10,7 +10,7 @@ export const Route = new TSRoute({
 });
 
 function DashboardComponent() {
-  const widgets = WidgetRegistry.getWidgets();
+  const widgets = useWidgets();
 
   return (
     <div className="space-y-6">

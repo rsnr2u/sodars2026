@@ -1,4 +1,4 @@
-import { ModuleId } from '../index';
+import { ModuleId, RegistryItem } from '../index';
 
 export interface RegistryStats {
   readonly total: number;
@@ -12,7 +12,7 @@ export type RegistryListener<T> = (
   stats: RegistryStats
 ) => void;
 
-export abstract class BaseRegistry<T extends { id: string; module: ModuleId; order?: number }> {
+export abstract class BaseRegistry<T extends RegistryItem> {
   protected items: Map<string, T> = new Map();
   protected version = 0;
   protected lastUpdated = Date.now();

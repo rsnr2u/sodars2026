@@ -1,5 +1,15 @@
+const getEnvMode = () => {
+  try {
+    return (import.meta as any).env?.MODE || 'development';
+  } catch {
+    return 'development';
+  }
+};
+
+const mode = getEnvMode();
+
 export const environmentConfig = {
-  mode: process.env.NODE_ENV || 'development',
-  isDev: process.env.NODE_ENV !== 'production',
-  isProduction: process.env.NODE_ENV === 'production',
+  mode,
+  isDev: mode !== 'production',
+  isProduction: mode === 'production',
 };

@@ -8,6 +8,9 @@
     "@sodars/sdk": "*",
     "@sodars/store": "*",
     "@sodars/design-system": "*",
+    "@sodars/config": "*",
+    "@sodars/observability": "*",
+    "@sodars/events": "*",
     "react": "^19.0.0",
     "lucide-react": "^0.471.1"
   }

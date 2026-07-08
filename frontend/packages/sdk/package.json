@@ -5,6 +5,11 @@
   "main": "src/index.ts",
   "dependencies": {
     "@sodars/contracts": "*",
-    "@sodars/icons": "*"
+    "@sodars/icons": "*",
+    "@sodars/observability": "*",
+    "@sodars/config": "*",
+    "@sodars/events": "*",
+    "@sodars/auth": "*",
+    "@sodars/api": "*"
   }
 }

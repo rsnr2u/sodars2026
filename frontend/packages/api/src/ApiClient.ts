@@ -1,55 +1,78 @@
-import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
-import { ApiMiddleware } from './ApiMiddleware';
-import { AuthMiddleware } from './AuthMiddleware';
-import { TenantMiddleware } from './TenantMiddleware';
-import { LocaleMiddleware } from './LocaleMiddleware';
-import { CorrelationMiddleware } from './CorrelationMiddleware';
-import { ErrorMapper } from './ErrorMapper';
+import axios from 'axios';
+import { HttpMiddleware, HttpRequest, HttpResponse, HttpMethod } from './client/HttpMiddleware';
+import { CorrelationIdMiddleware } from './middleware/CorrelationIdMiddleware';
+import { RequestContextMiddleware } from './middleware/RequestContextMiddleware';
+import { AuthMiddleware } from './middleware/AuthMiddleware';
+import { FeatureFlagMiddleware } from './middleware/FeatureFlagMiddleware';
+import { RetryMiddleware } from './middleware/RetryMiddleware';
+import { TimeoutMiddleware } from './middleware/TimeoutMiddleware';
+import { TelemetryMiddleware } from './middleware/TelemetryMiddleware';
+import { ErrorMiddleware } from './middleware/ErrorMiddleware';
 
 export class ApiClient {
-  private static instance: AxiosInstance | null = null;
-  private static middlewares: ApiMiddleware[] = [
-    new CorrelationMiddleware(),
+  private static middlewares: HttpMiddleware[] = [
+    new CorrelationIdMiddleware(),
+    new RequestContextMiddleware(),
     new AuthMiddleware(),
-    new TenantMiddleware(),
-    new LocaleMiddleware(),
+    new FeatureFlagMiddleware(),
+    new RetryMiddleware(),
+    new TimeoutMiddleware(),
+    new TelemetryMiddleware(),
+    new ErrorMiddleware(),
   ];
 
-  public static get(): AxiosInstance {
-    if (!this.instance) {
-      this.instance = axios.create({
-        baseURL: '/api',
-        timeout: 30000,
-        headers: {
-          'Content-Type': 'application/json',
-        },
+  public static async execute(request: HttpRequest): Promise<HttpResponse> {
+    const axiosInstance = axios.create({
+      baseURL: '/api',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    let index = 0;
+    const next = async (req: HttpRequest): Promise<HttpResponse> => {
+      if (index < this.middlewares.length) {
+        const middleware = this.middlewares[index++];
+        return middleware.execute(req, next);
+      }
+
+      // Final Axios execution
+      const response = await axiosInstance({
+        url: req.url,
+        method: req.method,
+        headers: req.headers,
+        data: req.body,
+        timeout: req.timeout,
       });
 
-      // 1. Request Interceptors Pipeline
-      this.instance.interceptors.request.use(
-        async (config) => {
-          let currentConfig = config;
-          for (const middleware of this.middlewares) {
-            currentConfig = await middleware.execute(currentConfig);
-          }
-          return currentConfig;
-        },
-        (error) => Promise.reject(error)
-      );
+      return {
+        status: response.status,
+        headers: Object.fromEntries(
+          Object.entries(response.headers || {}).map(([k, v]) => [k, String(v)])
+        ),
+        data: response.data,
+      };
+    };
 
-      // 2. Response Interceptors Pipeline
-      this.instance.interceptors.response.use(
-        (response: AxiosResponse) => response,
-        (error: AxiosError) => {
-          const appError = ErrorMapper.map(error);
-          return Promise.reject(appError);
-        }
-      );
-    }
-
-    return this.instance;
+    return next(request);
   }
 }
 
-export const apiClient = ApiClient.get();
+export const apiClient = {
+  get: (url: string, headers?: Record<string, string>) => 
+    ApiClient.execute({ url, method: 'GET', headers: headers || {} }),
+  
+  post: (url: string, body?: unknown, headers?: Record<string, string>) => 
+    ApiClient.execute({ url, method: 'POST', headers: headers || {}, body }),
+  
+  put: (url: string, body?: unknown, headers?: Record<string, string>) => 
+    ApiClient.execute({ url, method: 'PUT', headers: headers || {}, body }),
+  
+  patch: (url: string, body?: unknown, headers?: Record<string, string>) => 
+    ApiClient.execute({ url, method: 'PATCH', headers: headers || {}, body }),
+  
+  delete: (url: string, headers?: Record<string, string>) => 
+    ApiClient.execute({ url, method: 'DELETE', headers: headers || {} }),
+};
+
 export default apiClient;

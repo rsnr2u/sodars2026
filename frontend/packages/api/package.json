@@ -6,6 +6,8 @@
   "dependencies": {
     "@sodars/auth": "*",
     "@sodars/store": "*",
+    "@sodars/observability": "*",
+    "@sodars/config": "*",
     "axios": "^1.7.9"
   }
 }

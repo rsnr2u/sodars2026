@@ -29,4 +29,5 @@ export * from './environment';
 export * from './routing';
 export * from './versions';
 export * from './featureFlags';
+export * from './featureFlags/FeatureFlagStore';
 export * from './theme';

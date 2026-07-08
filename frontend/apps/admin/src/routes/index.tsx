@@ -1,5 +1,5 @@
 import { Route as TSRoute } from '@tanstack/react-router';
-import { WidgetSDK } from '@sodars/sdk';
+import { WidgetRegistry } from '@sodars/sdk';
 import { Button } from '@sodars/design-system';
 import { Route as protectedRoute } from './_protected';
 
@@ -10,7 +10,7 @@ export const Route = new TSRoute({
 });
 
 function DashboardComponent() {
-  const widgets = WidgetSDK.getWidgets();
+  const widgets = WidgetRegistry.getWidgets();
 
   return (
     <div className="space-y-6">
@@ -54,8 +54,8 @@ function DashboardComponent() {
                 key={widget.id}
                 className="col-span-12 md:col-span-6 p-6 bg-white border border-slate-200 rounded-lg shadow-sm"
               >
-                <h3 className="text-sm font-semibold text-slate-500 mb-4">{widget.name}</h3>
-                <WidgetComp />
+                <h3 className="text-sm font-semibold text-slate-500 mb-4">{widget.title}</h3>
+                <WidgetComp organizationId="org-999-id" branchId="brh-999-id" />
               </div>
             );
           })}

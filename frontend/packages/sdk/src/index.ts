@@ -1,6 +1,14 @@
-import React from 'react';
 import { IconType } from '@sodars/icons';
+import { BaseRegistry } from './registry/BaseRegistry';
+import { Config } from '@sodars/config';
+import { EventBus } from '@sodars/events';
+import { IdentityFacade } from '@sodars/auth';
+import { RequestContextAdapter } from './adapters/RequestContextAdapter';
+import { TelemetryAdapter } from './adapters/TelemetryAdapter';
+import { QueryClientAdapter } from './adapters/QueryClientAdapter';
+import { RouterAdapter } from './adapters/RouterAdapter';
 
+// 1. Module ID Types
 export type ModuleId =
   | 'dashboard'
   | 'crm'
@@ -16,7 +24,25 @@ export type ModuleId =
   | 'iam'
   | 'settings';
 
-// 1. Badge Definition
+// 2. Context Types
+export interface BootstrapContext {
+  readonly config: typeof Config;
+  readonly eventBus: typeof EventBus;
+  readonly queryClient: QueryClientAdapter;
+  readonly identity: IdentityFacade;
+  readonly registry: RegistryManager;
+  readonly requestContext: RequestContextAdapter;
+  readonly telemetry: TelemetryAdapter;
+}
+
+export interface CommandContext {
+  readonly router: RouterAdapter;
+  readonly identity: IdentityFacade;
+  readonly queryClient: QueryClientAdapter;
+  readonly registry: RegistryManager;
+}
+
+// 3. Navigation Node Types
 export interface BadgeDefinition {
   readonly value: string | number;
   readonly variant: 'primary' | 'success' | 'warning' | 'danger' | 'info';
@@ -24,10 +50,9 @@ export interface BadgeDefinition {
   readonly tooltip?: string;
 }
 
-// 2. Navigation Node
 export interface NavigationNode {
-  readonly id: string; // Hierarchical dot-separated notation (e.g. 'crm.leads')
-  readonly module: ModuleId; // Ownership module namespace
+  readonly id: string;
+  readonly module: ModuleId;
   readonly title: string;
   readonly route?: string;
   readonly icon?: IconType;
@@ -43,81 +68,43 @@ export interface NavigationNode {
   readonly children?: ReadonlyArray<NavigationNode>;
 }
 
-// 3. Navigation Registry API
-export class NavigationRegistry {
-  private static rawNodes: Map<string, NavigationNode> = new Map();
-  private static cachedTree: ReadonlyArray<NavigationNode> | null = null;
-  private static cachedFlatList: ReadonlyArray<NavigationNode> | null = null;
+// 4. Navigation Registry inheriting BaseRegistry
+export class NavigationRegistry extends BaseRegistry<NavigationNode> {
+  private static instance = new NavigationRegistry();
+  protected eventNamespace = 'navigation';
 
-  public static register(node: NavigationNode): void {
-    if (this.rawNodes.has(node.id)) {
-      console.warn(`[NavigationRegistry] Node with ID "${node.id}" already exists. Use replace() instead.`);
-      return;
-    }
-    this.rawNodes.set(node.id, { ...node });
-    this.invalidateCache();
+  private constructor() {
+    super();
   }
 
-  public static unregister(moduleName: string): void {
-    let changed = false;
-    for (const [id, node] of this.rawNodes.entries()) {
-      if (node.module === moduleName) {
-        this.rawNodes.delete(id);
-        changed = true;
-      }
-    }
-    if (changed) this.invalidateCache();
+  public static register(node: NavigationNode): void {
+    this.instance.register(node);
   }
 
   public static replace(node: NavigationNode): void {
-    this.rawNodes.set(node.id, { ...node });
-    this.invalidateCache();
+    this.instance.replace(node);
+  }
+
+  public static unregister(moduleName: ModuleId): void {
+    this.instance.unregister(moduleName);
   }
 
   public static find(id: string): Readonly<NavigationNode> | null {
-    const node = this.rawNodes.get(id);
-    return node ? Object.freeze({ ...node }) : null;
+    return this.instance.find(id);
   }
 
   public static getFlatList(): ReadonlyArray<NavigationNode> {
-    if (this.cachedFlatList) return this.cachedFlatList;
-
-    const list = Array.from(this.rawNodes.values())
-      .map(node => Object.freeze({ ...node }))
-      .sort((a, b) => a.order - b.order);
-
-    this.cachedFlatList = Object.freeze(list);
-    return this.cachedFlatList;
+    return this.instance.getAll();
   }
 
   public static getTree(): ReadonlyArray<NavigationNode> {
-    if (this.cachedTree) return this.cachedTree;
-
-    interface MutableNode {
-      id: string;
-      module: ModuleId;
-      title: string;
-      route?: string;
-      icon?: IconType;
-      parent?: string;
-      order: number;
-      permission?: string;
-      featureFlag?: string;
-      badge?: BadgeDefinition;
-      hidden?: boolean;
-      disabled?: boolean;
-      external?: boolean;
-      target?: "_self" | "_blank";
-      children: MutableNode[];
-    }
-
     const flatList = this.getFlatList().map(node => ({
       ...node,
-      children: [] as MutableNode[]
-    })) as unknown as MutableNode[];
+      children: [] as any[]
+    }));
 
-    const rootNodes: MutableNode[] = [];
-    const nodeMap = new Map<string, MutableNode>();
+    const rootNodes: any[] = [];
+    const nodeMap = new Map<string, any>();
 
     for (const node of flatList) {
       nodeMap.set(node.id, node);
@@ -127,7 +114,7 @@ export class NavigationRegistry {
       if (node.parent && nodeMap.has(node.parent)) {
         const parentNode = nodeMap.get(node.parent)!;
         parentNode.children.push(node);
-        parentNode.children.sort((a, b) => a.order - b.order);
+        parentNode.children.sort((a: any, b: any) => a.order - b.order);
       } else {
         rootNodes.push(node);
       }
@@ -135,7 +122,6 @@ export class NavigationRegistry {
 
     rootNodes.sort((a, b) => a.order - b.order);
 
-    // Deep freeze the constructed tree to ensure immutability
     const deepFreeze = (arr: any[]): ReadonlyArray<NavigationNode> => {
       arr.forEach(node => {
         if (node.children) {
@@ -146,57 +132,60 @@ export class NavigationRegistry {
       return Object.freeze(arr);
     };
 
-    this.cachedTree = deepFreeze(rootNodes);
-    return this.cachedTree;
+    return deepFreeze(rootNodes);
   }
 
   public static clear(): void {
-    this.rawNodes.clear();
-    this.invalidateCache();
+    this.instance.clear();
   }
 
-  private static invalidateCache(): void {
-    this.cachedTree = null;
-    this.cachedFlatList = null;
-  }
-}
-
-// 4. Widget SDK
-export interface WidgetConfig {
-  id: string;
-  name: string;
-  component: React.ComponentType<unknown>;
-  permissions?: string[];
-  defaultLayout?: { w: number; h: number };
-}
-
-export class WidgetSDK {
-  private static widgets: Map<string, WidgetConfig> = new Map();
-
-  public static register(widget: WidgetConfig): void {
-    this.widgets.set(widget.id, widget);
+  public static getStats() {
+    return this.instance.stats();
   }
 
-  public static getWidgets(): WidgetConfig[] {
-    return Array.from(this.widgets.values());
+  public static subscribe(listener: any) {
+    return this.instance.subscribe(listener);
   }
 }
 
-// 5. Module SDK
+// 5. Registry Manager Facade
+import { WidgetRegistry } from './registry/WidgetRegistry';
+import { CommandRegistry } from './registry/CommandRegistry';
+
+export class RegistryManager {
+  public readonly navigation = NavigationRegistry;
+  public readonly widgets = WidgetRegistry;
+  public readonly commands = CommandRegistry;
+}
+
+export const registryManager = new RegistryManager();
+
+// 6. Pluggable Module Interface
 export interface SodarsModule {
-  name: string;
-  boot(): void;
+  readonly id: ModuleId;
+  readonly version: string;
+  readonly displayName: string;
+  readonly description?: string;
+  readonly author?: string;
+  readonly category?: "core" | "business" | "integration" | "experimental";
+  readonly enabledByDefault?: boolean;
+  readonly dependencies?: ModuleId[];
+  readonly optional?: ModuleId[];
+  bootstrap(context: BootstrapContext): Promise<void>;
+  register(registry: RegistryManager): void;
+  start(): Promise<void>;
+  stop(): Promise<void>;
+  unregister(): void;
+  shutdown(): Promise<void>;
 }
 
-export class ModuleSDK {
-  private static modules: Map<string, SodarsModule> = new Map();
-
-  public static register(module: SodarsModule): void {
-    this.modules.set(module.name, module);
-    module.boot();
-  }
-
-  public static getModules(): SodarsModule[] {
-    return Array.from(this.modules.values());
-  }
-}
+// Re-exports
+export * from './registry/BaseRegistry';
+export * from './registry/Registry';
+export * from './registry/RegistryManager';
+export * from './registry/WidgetRegistry';
+export * from './registry/CommandRegistry';
+export * from './adapters/QueryClientAdapter';
+export * from './adapters/RouterAdapter';
+export * from './adapters/RequestContextAdapter';
+export * from './adapters/TelemetryAdapter';

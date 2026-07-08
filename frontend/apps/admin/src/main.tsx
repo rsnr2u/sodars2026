@@ -10,34 +10,38 @@ import './index.css';
 // 1. Register fallback routes in Navigation SDK
 NavigationRegistry.register({
   id: 'dashboard',
-  label: 'Dashboard Control',
-  path: '/',
-  icon: 'LayoutDashboard',
-  priority: 1,
+  module: 'dashboard',
+  title: 'Dashboard Control',
+  route: '/',
+  icon: 'dashboard',
+  order: 1,
 });
 
 NavigationRegistry.register({
   id: 'crm',
-  label: 'CRM Leads',
-  path: '/crm',
-  icon: 'Users',
-  priority: 10,
+  module: 'crm',
+  title: 'CRM Leads',
+  route: '/crm',
+  icon: 'crm',
+  order: 10,
 });
 
 NavigationRegistry.register({
   id: 'campaigns',
-  label: 'Campaigns Control',
-  path: '/campaigns',
-  icon: 'Megaphone',
-  priority: 20,
+  module: 'campaign',
+  title: 'Campaigns Control',
+  route: '/campaigns',
+  icon: 'campaign',
+  order: 20,
 });
 
 NavigationRegistry.register({
   id: 'operations',
-  label: 'Operations Planner',
-  path: '/operations',
-  icon: 'CalendarDays',
-  priority: 30,
+  module: 'operations',
+  title: 'Operations Planner',
+  route: '/operations',
+  icon: 'operations',
+  order: 30,
 });
 
 // Import route definitions

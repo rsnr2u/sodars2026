@@ -2,6 +2,9 @@ import React, { createContext, useContext } from 'react';
 import { useAuthStore, useTenantStore, useSidebarStore } from '@sodars/store';
 import { NavigationRegistry } from '@sodars/sdk';
 
+export * from './types/RouteParams';
+export * from './types/RouteMeta';
+
 // 1. Shell Provider Context
 interface ShellContextType {
   sidebarOpen: boolean;
@@ -80,7 +83,7 @@ export const Topbar: React.FC = () => {
 // 4. Sidebar Component
 export const Sidebar: React.FC = () => {
   const { clearSession } = useAuthStore();
-  const menuItems = NavigationRegistry.getItems();
+  const menuItems = NavigationRegistry.getFlatList();
 
   const handleLogout = () => {
     clearSession();
@@ -96,19 +99,19 @@ export const Sidebar: React.FC = () => {
         </div>
       </div>
       <nav className="flex-1 p-4 space-y-1.5">
-        {menuItems.map((item) => {
-          const isActive = window.location.pathname === item.path;
+        {menuItems.map((item: any) => {
+          const isActive = window.location.pathname === item.route;
           return (
             <a
               key={item.id}
-              href={item.path}
+              href={item.route}
               className={`flex items-center space-x-3 px-3 py-2 rounded text-sm transition-all duration-150 ${
                 isActive
                   ? 'bg-indigo-600 text-white font-semibold shadow-sm'
                   : 'hover:bg-slate-800 hover:text-white'
               }`}
             >
-              <span>{item.label}</span>
+              <span>{item.title}</span>
             </a>
           );
         })}

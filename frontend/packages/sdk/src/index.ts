@@ -155,16 +155,8 @@ export class NavigationRegistry extends BaseRegistry<NavigationNode> {
 }
 
 // 5. Registry Manager Facade
-import { WidgetRegistry } from './registry/WidgetRegistry';
-import { CommandRegistry } from './registry/CommandRegistry';
-
-export class RegistryManager {
-  public readonly navigation = NavigationRegistry;
-  public readonly widgets = WidgetRegistry;
-  public readonly commands = CommandRegistry;
-}
-
-export const registryManager = new RegistryManager();
+import { RegistryManager, registryManager } from './registry/RegistryManager';
+export { RegistryManager, registryManager };
 
 // 6. Pluggable Module Interface
 export interface SodarsModule {
@@ -191,6 +183,8 @@ export * from './registry/Registry';
 export * from './registry/RegistryManager';
 export * from './registry/WidgetRegistry';
 export * from './registry/CommandRegistry';
+export * from './registry/PermissionRegistry';
+export * from './registry/RouteRegistry';
 export * from './adapters/QueryClientAdapter';
 export * from './adapters/RouterAdapter';
 export * from './adapters/RequestContextAdapter';
@@ -199,3 +193,4 @@ export * from './hooks/useNavigation';
 export * from './hooks/useWidgets';
 export * from './hooks/useCommands';
 export * from './module/ModuleManager';
+export * from './module/BusinessModule';

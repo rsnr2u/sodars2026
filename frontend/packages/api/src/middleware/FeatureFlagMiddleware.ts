@@ -1,5 +1,5 @@
 import { HttpMiddleware, HttpRequest, HttpResponse, NextMiddleware } from '../client/HttpMiddleware';
-import { FeatureFlagStore } from '@sodars/config';
+
 
 export class FeatureFlagMiddleware implements HttpMiddleware {
   public async execute(request: HttpRequest, next: NextMiddleware): Promise<HttpResponse> {

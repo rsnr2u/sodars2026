@@ -16,6 +16,27 @@ export class ModuleManager {
     return Object.freeze(Array.from(this.modules.values()));
   }
 
+  public static async install(module: SodarsModule, context: BootstrapContext): Promise<void> {
+    this.register(module);
+    await module.bootstrap(context);
+    module.register(context.registry);
+    await module.start();
+    if (!this.bootstrappedModules.includes(module.id)) {
+      this.bootstrappedModules.push(module.id);
+    }
+  }
+
+  public static async uninstall(moduleId: ModuleId): Promise<void> {
+    const mod = this.modules.get(moduleId);
+    if (mod) {
+      await mod.stop();
+      await mod.shutdown();
+      mod.unregister();
+      this.modules.delete(moduleId);
+      this.bootstrappedModules = this.bootstrappedModules.filter(id => id !== moduleId);
+    }
+  }
+
   public static async bootstrapAll(context: BootstrapContext): Promise<void> {
     console.log('[ModuleManager] Initiating module dependency graph topological sorting...');
     const sorted = this.topologicalSort();

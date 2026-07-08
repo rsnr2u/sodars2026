@@ -23,6 +23,7 @@
     "@sodars/app-registry": "*",
     "@sodars/events": "*",
     "@sodars/realtime": "*",
+    "@sodars/module-iam": "*",
     "@sodars/feature-flags": "*",
     "@sodars/telemetry": "*",
     "@sodars/platform": "*",

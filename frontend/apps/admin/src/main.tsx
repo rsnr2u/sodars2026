@@ -59,6 +59,8 @@ import { Route as indexRoute } from './routes/index';
 import { Route as loginRoute } from './routes/login';
 import { Route as protectedRoute } from './routes/_protected';
 import { Route as diagnosticsRoute } from './routes/diagnostics';
+import { Route as iamUsersRoute } from './routes/iam.users';
+import { Route as iamRolesRoute } from './routes/iam.roles';
 
 // Build route tree mapping
 const routeTree = rootRoute.addChildren([
@@ -66,6 +68,8 @@ const routeTree = rootRoute.addChildren([
   protectedRoute.addChildren([
     indexRoute as any,
     diagnosticsRoute as any,
+    iamUsersRoute as any,
+    iamRolesRoute as any,
   ]) as any,
 ]);
 
@@ -102,6 +106,42 @@ CommandRegistry.register({
   }
 });
 
+import { Config } from '@sodars/config';
+import { EventBus } from '@sodars/events';
+import { identity } from '@sodars/auth';
+import { Telemetry } from '@sodars/observability';
+import { 
+  ModuleManager, 
+  registryManager, 
+  BootstrapContext 
+} from '@sodars/sdk';
+import { IamModule } from '@sodars/module-iam';
+
+const bootstrapContext: BootstrapContext = {
+  config: Config,
+  eventBus: EventBus,
+  queryClient: {
+    getQueryData: <T,>(_key: string[]): T | undefined => undefined,
+    setQueryData: <T,>(_key: string[], _data: T): void => {}
+  },
+  identity: identity,
+  registry: registryManager,
+  requestContext: {
+    getHeaders: () => ({
+      'X-Locale': navigator.language || 'en-US',
+      'X-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone
+    })
+  },
+  telemetry: {
+    trackEvent: (name: string, props?: Record<string, unknown>): void => {
+      Telemetry.track(name as any, undefined, props);
+    },
+    trackError: (error: Error, _severity?: string): void => {
+      Telemetry.trackError(error);
+    }
+  }
+};
+
 // Inject local mock credentials for testing/initial UI loading
 const initAuth = () => {
   const authStore = useAuthStore.getState();
@@ -115,6 +155,15 @@ const initAuth = () => {
 };
 
 initAuth();
+
+// Install IAM Reference Module dynamically
+ModuleManager.install(new IamModule(), bootstrapContext)
+  .then(() => {
+    console.log('[App] IamModule installed successfully!');
+  })
+  .catch(err => {
+    console.error('[App] Failed to install IamModule:', err);
+  });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

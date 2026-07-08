@@ -5,6 +5,8 @@ import {
   NavigationRegistry, 
   WidgetRegistry, 
   CommandRegistry, 
+  PermissionRegistry,
+  RouteRegistry,
   ModuleManager 
 } from '@sodars/sdk';
 import { EventBus } from '@sodars/events';
@@ -101,6 +103,8 @@ function DiagnosticsComponent() {
   const navStats = NavigationRegistry.getStats();
   const widgetStats = WidgetRegistry.getStats();
   const commandStats = CommandRegistry.getStats();
+  const routeStats = RouteRegistry.getStats();
+  const permissionStats = PermissionRegistry.getStats();
   const modulesList = ModuleManager.getModules();
 
   const filteredEvents = eventsList.filter((ev) => {
@@ -265,6 +269,22 @@ function DiagnosticsComponent() {
                 <div className="text-xs text-slate-500 space-y-1">
                   <div>Last Updated: {new Date(commandStats.lastUpdated).toLocaleTimeString()}</div>
                   <div>Fuzzy Search Commands: {commandStats.total} entries</div>
+                </div>
+              </div>
+
+              <div className="p-4 border border-slate-250 dark:border-slate-850 rounded-lg">
+                <h4 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-2">RouteRegistry (v{routeStats.version})</h4>
+                <div className="text-xs text-slate-500 space-y-1">
+                  <div>Last Updated: {new Date(routeStats.lastUpdated).toLocaleTimeString()}</div>
+                  <div>Active Navigation Routes: {routeStats.total} entries</div>
+                </div>
+              </div>
+
+              <div className="p-4 border border-slate-250 dark:border-slate-850 rounded-lg">
+                <h4 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-2">PermissionRegistry (v{permissionStats.version})</h4>
+                <div className="text-xs text-slate-500 space-y-1">
+                  <div>Last Updated: {new Date(permissionStats.lastUpdated).toLocaleTimeString()}</div>
+                  <div>Access Policy Permissions: {permissionStats.total} entries</div>
                 </div>
               </div>
             </div>

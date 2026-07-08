@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { HttpMiddleware, HttpRequest, HttpResponse, HttpMethod } from './client/HttpMiddleware';
+import { HttpMiddleware, HttpRequest, HttpResponse } from './client/HttpMiddleware';
 import { CorrelationIdMiddleware } from './middleware/CorrelationIdMiddleware';
 import { RequestContextMiddleware } from './middleware/RequestContextMiddleware';
 import { AuthMiddleware } from './middleware/AuthMiddleware';

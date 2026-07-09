@@ -61,6 +61,17 @@ import { Route as protectedRoute } from './routes/_protected';
 import { Route as diagnosticsRoute } from './routes/diagnostics';
 import { Route as iamUsersRoute } from './routes/iam.users';
 import { Route as iamRolesRoute } from './routes/iam.roles';
+import { Route as crmRoute } from './routes/crm';
+import { Route as crmEnquiriesRoute } from './routes/crm.enquiries';
+
+import { Route as crmCustomersRoute } from './routes/crm.customers';
+import { Route as crmCustomerDetailRoute } from './routes/crm.customers.$id';
+import { Route as crmTasksRoute } from './routes/crm.tasks';
+import { Route as crmFollowupsRoute } from './routes/crm.followups';
+
+import { Route as crmQuotationsRoute } from './routes/crm.quotations';
+import { Route as crmCalendarRoute } from './routes/crm.calendar';
+import { Route as crmReportsRoute } from './routes/crm.reports';
 
 // Build route tree mapping
 const routeTree = rootRoute.addChildren([
@@ -70,6 +81,15 @@ const routeTree = rootRoute.addChildren([
     diagnosticsRoute as any,
     iamUsersRoute as any,
     iamRolesRoute as any,
+    crmRoute as any,
+    crmEnquiriesRoute as any,
+    crmCustomersRoute as any,
+    crmCustomerDetailRoute as any,
+    crmTasksRoute as any,
+    crmFollowupsRoute as any,
+    crmQuotationsRoute as any,
+    crmCalendarRoute as any,
+    crmReportsRoute as any,
   ]) as any,
 ]);
 
@@ -156,6 +176,8 @@ const initAuth = () => {
 
 initAuth();
 
+import { CrmModule } from '@sodars/module-crm';
+
 // Install IAM Reference Module dynamically
 ModuleManager.install(new IamModule(), bootstrapContext)
   .then(() => {
@@ -163,6 +185,15 @@ ModuleManager.install(new IamModule(), bootstrapContext)
   })
   .catch(err => {
     console.error('[App] Failed to install IamModule:', err);
+  });
+
+// Install CRM Reference Module dynamically
+ModuleManager.install(new CrmModule(), bootstrapContext)
+  .then(() => {
+    console.log('[App] CrmModule installed successfully!');
+  })
+  .catch(err => {
+    console.error('[App] Failed to install CrmModule:', err);
   });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

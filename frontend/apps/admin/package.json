@@ -24,6 +24,7 @@
     "@sodars/events": "*",
     "@sodars/realtime": "*",
     "@sodars/module-iam": "*",
+    "@sodars/module-crm": "*",
     "@sodars/feature-flags": "*",
     "@sodars/telemetry": "*",
     "@sodars/platform": "*",

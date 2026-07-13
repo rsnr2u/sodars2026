@@ -1,0 +1,11 @@
+{
+  "name": "@sodars/query",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "dependencies": {
+    "@sodars/config": "*",
+    "@tanstack/react-query": "^5.0.0",
+    "react": "^19.0.0"
+  }
+}

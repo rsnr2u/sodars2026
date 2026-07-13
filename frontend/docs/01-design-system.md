@@ -1,18 +1,22 @@
-# Shared Design System Guidelines
+# SODAARS Design System
 
-We standardize on a single, professional enterprise ERP visual identity.
+## 1. Color Palette Custom Tokens
+We use dedicated HSL token mappings in Tailwind CSS v4:
+- **Primary / Dark Emerald** (`var(--primary)` / `#0B5D4B`): Brand primary container headers and backgrounds.
+- **Secondary / Emerald** (`var(--secondary)` / `#10B981`): Action accents and hover indicators.
+- **Accent / Mint** (`var(--info)` / `#6EE7B7`): System status info tags.
+- **Warning / Gold** (`var(--warning)` / `#F4B400`): In-review/caution alerts.
+- **Success / Green** (`var(--success)` / `#16A34A`): Confirmed/verified compliance status tags.
+- **Error / Red** (`var(--danger)` / `#DC2626`): Expired compliance or rejection notifications.
 
----
-
-## 1. Tokens
-All layouts utilize system tokens defined in `@sodars/design-system`:
-* **Typography**: Default to modern sans-serif fonts (e.g. Inter or Outfit).
-* **Grid**: 8px spatial grid guidelines (padding, margin, heights).
-* **Colors**: HSL variables supporting Light, Dark, and System modes.
-
-## 2. Core Primitive Components
-Every portal imports standard UI components exclusively from `@sodars/design-system`:
-* `Button`: States (primary, secondary, danger, warning).
-* `DataGrid`: Virtualized list tables utilizing `TanStack Table`.
-* `Charts`: Apache ECharts chart cards wrappers.
-* `Forms`: Validation adapters with inputs mapping.
+## 2. Shared Atomic UI Components
+All custom screens consume modular, atomic items exported by `packages/ui`:
+- **Button**: Custom variant controls (primary, outline, danger, success) with size and loading spinner states.
+- **Badge**: Status pill identifiers with pulse support.
+- **Card**: Solid/glassmorphic grid container box.
+- **Input**: Form inputs with validation labels.
+- **Select**: Dropdown selectors.
+- **Drawer**: Slide-out overlay panels with backdrop-blur.
+- **Dialog**: Alert confirmation dialogs.
+- **Skeleton**: Shimmer loading block states.
+- **Empty State**: Call-to-action placeholder widgets.

@@ -2,9 +2,20 @@
   "name": "@sodars/design-system",
   "version": "1.0.0",
   "private": true,
-  "main": "src/index.tsx",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "dependencies": {
-    "@sodars/auth": "*",
-    "react": "^19.0.0"
+    "@sodars/utils": "*",
+    "@sodars/core": "*",
+    "@sodars/types": "*",
+    "@sodars/assets": "*",
+    "@sodars/theme": "*",
+    "@sodars/branding": "*",
+    "lucide-react": "^0.471.0",
+    "framer-motion": "^11.18.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   }
 }

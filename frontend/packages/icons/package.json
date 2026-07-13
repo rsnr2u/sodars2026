@@ -2,10 +2,12 @@
   "name": "@sodars/icons",
   "version": "1.0.0",
   "private": true,
-  "main": "src/index.tsx",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "dependencies": {
-    "@sodars/config": "*",
-    "react": "^19.0.0",
-    "lucide-react": "^0.471.1"
+    "lucide-react": "^0.471.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
   }
 }

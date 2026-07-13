@@ -1,0 +1,15 @@
+{
+  "name": "@sodars/module-provider",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@sodars/sdk": "*",
+    "@sodars/config": "*",
+    "@sodars/api": "*",
+    "@sodars/observability": "*",
+    "@sodars/business-core": "*",
+    "react": "^19.0.0"
+  }
+}
